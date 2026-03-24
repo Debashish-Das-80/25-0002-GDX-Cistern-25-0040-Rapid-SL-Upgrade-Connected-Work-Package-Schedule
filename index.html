@@ -352,9 +352,6 @@ function changeStatus(id, sel) {
   const newStatus = sel.value;
   userStatus[id] = newStatus;
   r.status = newStatus;
-  const sbClass = newStatus==='Done'?'s-done':newStatus==='In Progress'?'s-inprogress':'s-open';
-  sel.className = 'status-select ' + sbClass;
-  // Re-render gantt row colour without full re-render
   render();
 }
 
@@ -476,15 +473,16 @@ function render() {
       const delayed = isDelayed(r.id);
       const dur = getEffDur(r.id);
       const modified = userDur[r.id]!==undefined;
-      const sbClass = r.status==='Done'?'s-done':r.status==='In Progress'?'s-inprogress':'s-open';
+      const effStatus = userStatus[r.id] !== undefined ? userStatus[r.id] : r.status;
+      const sbClass = effStatus==='Done'?'s-done':effStatus==='In Progress'?'s-inprogress':'s-open';
       leftRow.innerHTML = `
         <div class="cell col-index" style="font-size:10px;color:#888">${r.index||''}</div>
         <div class="cell col-name" title="${r.name}" style="${delayed?'color:#c00;':''}">${r.name}</div>
         <div class="cell col-owner" style="text-align:center;font-size:10px;color:#666">${r.owner||''}</div>
         <div class="cell col-status"><select class="status-select ${sbClass}" onchange="changeStatus('${r.id}', this)">
-          <option value="Open" ${r.status==='Open'?'selected':''}>Open</option>
-          <option value="In Progress" ${r.status==='In Progress'?'selected':''}>In Progress</option>
-          <option value="Done" ${r.status==='Done'?'selected':''}>Done</option>
+          <option value="Open" ${effStatus==='Open'?'selected':''}>Open</option>
+          <option value="In Progress" ${effStatus==='In Progress'?'selected':''}>In Progress</option>
+          <option value="Done" ${effStatus==='Done'?'selected':''}>Done</option>
         </select></div>
         <div class="cell col-dur dur-cell" id="durcell_${r.id}">
           <span class="dur-display ${modified?'modified':''}" onclick="startEdit('${r.id}')" title="Click to change duration">${dur}w</span>
@@ -510,7 +508,8 @@ function render() {
         const s = getEffStart(r.id), e = s + getEffDur(r.id);
         if(wi>=s && wi<e) {
           const delayed = isDelayed(r.id);
-          const barClass = delayed ? 'bar-delayed' : (r.status==='Done'?'bar-done':r.status==='In Progress'?'bar-inprogress':'bar-open');
+          const effSt = userStatus[r.id] !== undefined ? userStatus[r.id] : r.status;
+          const barClass = delayed ? 'bar-delayed' : (effSt==='Done'?'bar-done':effSt==='In Progress'?'bar-inprogress':'bar-open');
           cellContent = `<div class="bar ${barClass}"></div>`;
         }
       } else if(r.type==='milestone') {
