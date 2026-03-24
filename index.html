@@ -54,6 +54,12 @@
   .s-done { background: #d4edda; color: #155724; }
   .s-inprogress { background: #fff3cd; color: #856404; }
   .s-open { background: #e2e8f0; color: #444; }
+  .status-select { font-size: 10px; font-weight: 600; border-radius: 3px; border: 1px solid transparent; cursor: pointer; padding: 1px 2px; width: 76px; text-align: center; }
+  .status-select.s-done { background: #d4edda; color: #155724; }
+  .status-select.s-inprogress { background: #fff3cd; color: #856404; }
+  .status-select.s-open { background: #e2e8f0; color: #444; }
+  .status-select:hover { border-color: #aaa; }
+  .status-select:focus { outline: 2px solid #1a2a4a; }
 
   .dur-cell { width: 52px; text-align: center; cursor: pointer; }
   .dur-input { width: 40px; text-align: center; border: 1px solid #aaa; border-radius: 3px; font-size: 11px; padding: 1px 3px; }
@@ -325,7 +331,7 @@ const RAW = [
 
 // Build lookup
 const itemMap = {};
-RAW.forEach(r => { itemMap[r.id] = r; });
+RAW.forEach(r => { itemMap[r.id] = r; if(r.type==='wp') r._origStatus = r.status; });
 
 // Original durations and starts — converted to WEEK indices for the Gantt
 const origDur = {}, origStart = {};
@@ -338,6 +344,19 @@ RAW.forEach(r => {
 
 // delta storage: user-set durations
 const userDur = {};
+const userStatus = {};
+
+function changeStatus(id, sel) {
+  const r = itemMap[id];
+  if(!r) return;
+  const newStatus = sel.value;
+  userStatus[id] = newStatus;
+  r.status = newStatus;
+  const sbClass = newStatus==='Done'?'s-done':newStatus==='In Progress'?'s-inprogress':'s-open';
+  sel.className = 'status-select ' + sbClass;
+  // Re-render gantt row colour without full re-render
+  render();
+}
 
 function getEffDur(id) { return userDur[id] !== undefined ? userDur[id] : origDur[id]; }
 function getEffStart(id) {
@@ -462,7 +481,11 @@ function render() {
         <div class="cell col-index" style="font-size:10px;color:#888">${r.index||''}</div>
         <div class="cell col-name" title="${r.name}" style="${delayed?'color:#c00;':''}">${r.name}</div>
         <div class="cell col-owner" style="text-align:center;font-size:10px;color:#666">${r.owner||''}</div>
-        <div class="cell col-status"><span class="status-badge ${sbClass}">${r.status||''}</span></div>
+        <div class="cell col-status"><select class="status-select ${sbClass}" onchange="changeStatus('${r.id}', this)">
+          <option value="Open" ${r.status==='Open'?'selected':''}>Open</option>
+          <option value="In Progress" ${r.status==='In Progress'?'selected':''}>In Progress</option>
+          <option value="Done" ${r.status==='Done'?'selected':''}>Done</option>
+        </select></div>
         <div class="cell col-dur dur-cell" id="durcell_${r.id}">
           <span class="dur-display ${modified?'modified':''}" onclick="startEdit('${r.id}')" title="Click to change duration">${dur}w</span>
         </div>`;
@@ -547,6 +570,8 @@ function showImpact(changedId, newDur) {
 
 function resetAll() {
   Object.keys(userDur).forEach(k => delete userDur[k]);
+  Object.keys(userStatus).forEach(k => delete userStatus[k]);
+  RAW.forEach(r => { if(r.type==='wp' && r._origStatus) r.status = r._origStatus; });
   document.getElementById('impactBanner').classList.remove('show');
   render();
 }
