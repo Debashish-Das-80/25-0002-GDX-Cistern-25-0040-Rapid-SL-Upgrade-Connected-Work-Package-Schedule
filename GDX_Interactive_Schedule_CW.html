@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GDX Connected WP Schedule — Interactive</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 13px; background: #f5f5f0; color: #222; }
+
+  .header { background: #1a2a4a; color: #fff; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 15px; font-weight: 600; letter-spacing: 0.3px; }
+  .header .sub { font-size: 11px; opacity: 0.65; margin-top: 2px; }
+
+  .toolbar { background: #fff; border-bottom: 1px solid #ddd; padding: 8px 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .toolbar label { font-size: 11px; color: #555; }
+  .toolbar select, .toolbar input[type=text] { font-size: 12px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; }
+  .impact-banner { background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 6px 12px; font-size: 11px; color: #7a5c00; display: none; }
+  .impact-banner.show { display: block; }
+  .reset-btn { font-size: 11px; padding: 4px 10px; background: #1a2a4a; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+
+  .container { display: flex; overflow: auto; }
+
+  .left-panel { min-width: 380px; max-width: 380px; border-right: 2px solid #ccc; background: #fff; position: sticky; left: 0; z-index: 10; }
+  .left-panel .col-headers { display: flex; border-bottom: 2px solid #ccc; background: #eee; height: 46px; align-items: center; }
+  .col-h { font-size: 10px; font-weight: 700; color: #555; text-transform: uppercase; padding: 0 6px; overflow: hidden; white-space: nowrap; }
+  .col-index { width: 52px; }
+  .col-name { flex: 1; }
+  .col-owner { width: 48px; text-align: center; }
+  .col-status { width: 80px; text-align: center; }
+  .col-dur { width: 52px; text-align: center; }
+
+  .right-panel { flex: 1; overflow: auto; }
+  .month-band { display: flex; position: sticky; top: 0; z-index: 6; background: #e8ecf4; border-bottom: 1px solid #ccc; height: 18px; }
+  .month-band-cell { display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #1a2a4a; border-right: 1px solid #ccc; white-space: nowrap; overflow: hidden; }
+  .month-headers { display: flex; position: sticky; top: 18px; z-index: 5; background: #fff; border-bottom: 2px solid #ccc; height: 28px; }
+  .year-row { display: flex; position: sticky; top: 0; background: #fff; }
+
+  .gantt-scroll { min-width: max-content; }
+
+  .row { display: flex; align-items: center; border-bottom: 1px solid #f0f0f0; height: 28px; }
+  .row:hover { background: #f9f9ff; }
+
+  .cell { padding: 0 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 12px; height: 28px; display: flex; align-items: center; }
+
+  .stage-row { background: #1a2a4a !important; color: #fff; font-weight: 700; font-size: 12px; height: 32px; }
+  .stage-row .cell { height: 32px; color: #fff; }
+
+  .milestone-row { background: #f8f4e8 !important; font-style: italic; font-size: 11px; color: #666; }
+  .gate-row { background: #e8f0e8 !important; font-weight: 700; font-size: 12px; color: #1a5a1a; }
+  .launch-row { background: #fff0e0 !important; font-weight: 700; font-size: 12px; color: #a04000; }
+
+  .status-badge { font-size: 10px; padding: 1px 5px; border-radius: 3px; font-weight: 600; white-space: nowrap; }
+  .s-done { background: #d4edda; color: #155724; }
+  .s-inprogress { background: #fff3cd; color: #856404; }
+  .s-open { background: #e2e8f0; color: #444; }
+
+  .dur-cell { width: 52px; text-align: center; cursor: pointer; }
+  .dur-input { width: 40px; text-align: center; border: 1px solid #aaa; border-radius: 3px; font-size: 11px; padding: 1px 3px; }
+  .dur-display { font-size: 11px; color: #444; border-bottom: 1px dashed #aaa; min-width: 28px; text-align: center; cursor: pointer; }
+  .dur-display.modified { color: #c00; font-weight: 700; }
+
+  .gantt-row { display: flex; height: 28px; align-items: center; border-bottom: 1px solid #f0f0f0; }
+  .gantt-row:hover { background: #f9f9ff; }
+  .gantt-stage-row { height: 32px; background: #1a2a4a; border-bottom: 1px solid #333; }
+  .gantt-milestone-row { height: 28px; background: #f8f4e8; border-bottom: 1px solid #f0f0f0; }
+  .gantt-gate-row { height: 28px; background: #e8f0e8; border-bottom: 1px solid #ddd; }
+  .gantt-launch-row { height: 28px; background: #fff0e0; border-bottom: 1px solid #ddd; }
+
+  .mcell { width: 28px; min-width: 28px; height: 100%; border-right: 1px solid #eee; position: relative; display: flex; align-items: center; justify-content: center; font-size: 9px; }
+  .mcell.qborder { border-right: 1px solid #bbb; }
+  .mcell.yborder { border-right: 2px solid #888; }
+  .mcell.today-col { background: rgba(26,42,74,0.08) !important; border-right: 1px solid #1a2a4a; }
+
+  .bar { height: 12px; border-radius: 2px; position: absolute; left: 1px; right: 1px; }
+  .bar-done { background: #4caf7a; }
+  .bar-inprogress { background: #ffc107; }
+  .bar-open { background: #5b8dd9; }
+  .bar-delayed { background: #e74c3c !important; }
+
+  .diamond { width: 8px; height: 8px; transform: rotate(45deg); border: 2px solid #555; background: #fff; }
+  .gate-marker { width: 8px; height: 8px; transform: rotate(45deg); background: #1a7a1a; }
+  .launch-marker { font-size: 11px; }
+
+  .month-header-cell { width: 28px; min-width: 28px; text-align: center; font-size: 9px; font-weight: 700; color: #555; border-right: 1px solid #eee; padding: 2px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .month-header-cell.yborder { border-right: 2px solid #888; }
+  .month-header-cell.qborder { border-right: 1px solid #bbb; }
+  .month-header-cell.today-col { background: rgba(26,42,74,0.12); }
+  .year-label { font-size: 11px; font-weight: 700; color: #1a2a4a; background: #e8ecf4; padding: 3px 8px; border-right: 2px solid #888; display: flex; align-items: center; justify-content: center; }
+
+  .legend { padding: 8px 16px; background: #fff; border-top: 1px solid #ddd; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; font-size: 11px; }
+  .leg-item { display: flex; align-items: center; gap: 5px; }
+  .leg-bar { width: 24px; height: 10px; border-radius: 2px; }
+
+  .tooltip { position: fixed; background: #222; color: #fff; padding: 6px 10px; border-radius: 5px; font-size: 11px; pointer-events: none; z-index: 999; display: none; max-width: 220px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="h1">25-0002 GDX Cistern &nbsp;|&nbsp; 25-0040 Rapid SL Upgrade — Connected Work Package Schedule</div>
+    <div class="sub">Interactive mode · Calendar weeks (ISO) · click any duration to edit — downstream work packages update automatically</div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <label>Filter status:
+    <select id="filterStatus">
+      <option value="all">All</option>
+      <option value="Done">Done</option>
+      <option value="In Progress">In Progress</option>
+      <option value="Open">Open</option>
+    </select>
+  </label>
+  <label>Filter stage:
+    <select id="filterStage">
+      <option value="all">All stages</option>
+      <option value="1">Stage 1</option>
+      <option value="2">Stage 2</option>
+      <option value="3">Stage 3</option>
+      <option value="4">Stage 4</option>
+      <option value="5">Stage 5</option>
+    </select>
+  </label>
+  <label>Search: <input type="text" id="searchBox" placeholder="e.g. design, supplier…" style="width:160px"></label>
+  <button class="reset-btn" onclick="resetAll()">Reset all durations</button>
+  <div class="impact-banner" id="impactBanner"></div>
+</div>
+
+<div id="tooltip" class="tooltip"></div>
+
+<div class="container" id="mainContainer">
+  <div class="left-panel" id="leftPanel">
+    <div class="col-headers">
+      <div class="col-h col-index">Index</div>
+      <div class="col-h col-name">Work Package</div>
+      <div class="col-h col-owner">Owner</div>
+      <div class="col-h col-status">Status</div>
+      <div class="col-h col-dur">Dur (w)</div>
+    </div>
+    <div id="leftRows"></div>
+  </div>
+  <div class="right-panel" id="rightPanel">
+    <div class="month-band" id="monthBand"></div>
+    <div class="month-headers" id="monthHeaders"></div>
+    <div class="gantt-scroll" id="ganttRows"></div>
+  </div>
+</div>
+
+<div class="legend">
+  <strong style="font-size:11px">Legend:</strong>
+  <div class="leg-item"><div class="leg-bar" style="background:#4caf7a"></div> Done</div>
+  <div class="leg-item"><div class="leg-bar" style="background:#ffc107"></div> In Progress</div>
+  <div class="leg-item"><div class="leg-bar" style="background:#5b8dd9"></div> Open / Planned</div>
+  <div class="leg-item"><div class="leg-bar" style="background:#e74c3c"></div> Delayed (cascade)</div>
+  <div class="leg-item"><div style="width:12px;height:12px;transform:rotate(45deg);border:2px solid #555;background:#fff;display:inline-block"></div> &nbsp;Internal milestone</div>
+  <div class="leg-item"><div style="width:12px;height:12px;transform:rotate(45deg);background:#1a7a1a;display:inline-block"></div> &nbsp;Gate</div>
+  <div class="leg-item">🚀 Launch</div>
+</div>
+
+<script>
+// Calendar weeks: W01/2026 (index 0) through W39/2027 (index 91)
+// W01/2026 starts 2025-12-29; each entry = one ISO calendar week
+const WEEKS = (function(){
+  const w = [];
+  // 2026: W01–W52
+  for(let i=1;i<=52;i++) w.push({week:i,year:2026});
+  // 2027: W01–W39
+  for(let i=1;i<=39;i++) w.push({week:i,year:2027});
+  return w;
+})();
+
+// Month-to-week-index: MONTH_TO_WEEK[m] = week index where month m begins
+// month 0=Jan2026 … 21=Oct2027
+const MONTH_TO_WEEK = [0,4,8,13,17,22,26,30,35,39,43,48,52,57,61,65,69,74,78,82,87,91];
+
+// Convert original month-based startM / durM to week indices
+function monthStartToWeek(startM) { return MONTH_TO_WEEK[startM] || 0; }
+function monthDurToWeeks(startM, durM) {
+  const endM = Math.min(startM + durM, MONTH_TO_WEEK.length - 1);
+  return (MONTH_TO_WEEK[endM] || MONTH_TO_WEEK[MONTH_TO_WEEK.length-1]) - (MONTH_TO_WEEK[startM] || 0);
+}
+// For milestone/gate monthM -> week index
+function monthToWeekIdx(monthM) { return MONTH_TO_WEEK[Math.min(monthM, MONTH_TO_WEEK.length-1)] || 0; }
+
+// week index 0 = W01/2026 (≈ Jan 2026)
+// Dependency map: wpId -> list of wpId that depend on it (must start after it ends)
+const RAW = [
+  // type: 'stage'|'wp'|'milestone'|'gate'|'launch'
+  // startM: start month index (0=Jan2026), durM: duration in months
+  // deps: array of wpId that this item depends on (starts after max end of deps)
+  {id:'s1', type:'stage', label:'STAGE 1 — Project Initiation'},
+  {id:'1.1.1', type:'wp', index:'1.1.1.', name:'Kick-off preparation', owner:'PM', status:'Done', prio:'C', startM:0, durM:1, deps:[]},
+  {id:'m_kickoff', type:'milestone', label:'Project kicked off', monthM:0},
+  {id:'1.2.1', type:'wp', index:'1.2.1.', name:'Idea brief review', owner:'PM', status:'Done', prio:'B', startM:0, durM:1, deps:[]},
+  {id:'1.2.2', type:'wp', index:'1.2.2.', name:'Spare parts / serviceability concept', owner:'PM', status:'In Progress', prio:'B', startM:0, durM:2, deps:[]},
+  {id:'1.2.3', type:'wp', index:'1.2.3.', name:'Benchmarking (commercial)', owner:'PM', status:'Done', prio:'A', startM:0, durM:1, deps:[]},
+  {id:'1.2.4', type:'wp', index:'1.2.4.', name:'Range definition', owner:'PM', status:'In Progress', prio:'A', startM:0, durM:2, deps:[]},
+  {id:'1.2.5', type:'wp', index:'1.2.5.', name:'Approval overview', owner:'TDA', status:'Done', prio:'A', startM:0, durM:1, deps:[]},
+  {id:'1.2.6', type:'wp', index:'1.2.6.', name:'Alignment MFS + engineering feedback', owner:'PM', status:'Done', prio:'A', startM:0, durM:1, deps:[]},
+  {id:'m_mfs', type:'milestone', label:'MFS aligned', monthM:1},
+  {id:'1.3.1', type:'wp', index:'1.3.1.', name:'Prepare design concepts', owner:'Design', status:'Done', prio:'A', startM:0, durM:1, deps:[]},
+  {id:'1.3.2', type:'wp', index:'1.3.2.', name:'Design patent research', owner:'Design', status:'Done', prio:'C', startM:0, durM:1, deps:[]},
+  {id:'m_design', type:'milestone', label:'Initial design concept ready', monthM:0},
+  {id:'1.4.1', type:'wp', index:'1.4.1.', name:'TD relevant topics identification', owner:'RD', status:'Done', prio:'C', startM:0, durM:1, deps:[]},
+  {id:'1.4.2', type:'wp', index:'1.4.2.', name:'Define engineering concept', owner:'RD', status:'Done', prio:'A', startM:0, durM:1, deps:[]},
+  {id:'1.4.3', type:'wp', index:'1.4.3.', name:'Benchmarking (technical)', owner:'RD', status:'Done', prio:'', startM:0, durM:1, deps:[]},
+  {id:'1.4.4', type:'wp', index:'1.4.4.', name:'Engineering patent research', owner:'RD', status:'Done', prio:'C', startM:0, durM:1, deps:[]},
+  {id:'m_eng', type:'milestone', label:'Engineering concept ready', monthM:1},
+  {id:'1.5.1', type:'wp', index:'1.5.1.', name:'New supplier identification', owner:'TP', status:'Done', prio:'A', startM:0, durM:1, deps:[]},
+  {id:'1.5.2', type:'wp', index:'1.5.2.', name:'Quality concept', owner:'TQ', status:'Done', prio:'A', startM:0, durM:1, deps:[]},
+  {id:'m_risk', type:'milestone', label:'Pre-risk assessment', monthM:1},
+  {id:'1.6.1', type:'wp', index:'1.6.1.', name:'Gate 1 preparation', owner:'TDP', status:'Done', prio:'B', startM:0, durM:1, deps:[]},
+  {id:'gate1', type:'gate', label:'GATE 1 — 05.02.2026', monthM:1, gdx:true, rapid:true},
+
+  {id:'s2', type:'stage', label:'STAGE 2 — Concept Development'},
+  {id:'2.1.1', type:'wp', index:'2.1.1.', name:'Create final design', owner:'Design', status:'Open', prio:'A', startM:1, durM:3, deps:['gate1']},
+  {id:'2.1.2', type:'wp', index:'2.1.2.', name:'Design review in team', owner:'Design', status:'Open', prio:'', startM:3, durM:1, deps:['2.1.1']},
+  {id:'2.1.3', type:'wp', index:'2.1.3.', name:'Design patents application', owner:'Design', status:'Open', prio:'C', startM:3, durM:2, deps:['2.1.1']},
+  {id:'m_idf', type:'milestone', label:'Industrial Design Freeze', monthM:3},
+  {id:'2.2.1', type:'wp', index:'2.2.1.', name:'Creation of PNA', owner:'PM', status:'Open', prio:'B', startM:1, durM:3, deps:['gate1']},
+  {id:'2.2.2a', type:'wp', index:'2.2.2.', name:'Engineering Design Concept (GDX Cistern)', owner:'RD', status:'Open', prio:'A', startM:1, durM:3, deps:['gate1']},
+  {id:'2.2.2b', type:'wp', index:'2.2.2.', name:'Engineering Design Concept (Rapid: Step 1)', owner:'RD', status:'Open', prio:'A', startM:1, durM:3, deps:['gate1']},
+  {id:'2.2.3', type:'wp', index:'2.2.3.', name:'EHS Check', owner:'TQ', status:'Open', prio:'B', startM:2, durM:2, deps:['gate1']},
+  {id:'2.2.4', type:'wp', index:'2.2.4.', name:'Engineering patents application', owner:'RD', status:'Open', prio:'C', startM:2, durM:2, deps:['gate1']},
+  {id:'2.2.5', type:'wp', index:'2.2.5.', name:'Product cost estimation', owner:'TDP', status:'Open', prio:'A', startM:2, durM:2, deps:['gate1']},
+  {id:'2.2.6', type:'wp', index:'2.2.6.', name:'Test spec draft', owner:'TDE', status:'Open', prio:'B', startM:2, durM:2, deps:['gate1']},
+  {id:'2.2.7', type:'wp', index:'2.2.7.', name:'Development contracts', owner:'TP', status:'Open', prio:'B', startM:1, durM:3, deps:['gate1']},
+  {id:'2.2.8', type:'wp', index:'2.2.8.', name:'Overall feasibility commitment', owner:'TDP', status:'Open', prio:'A', startM:3, durM:1, deps:['2.2.2a','2.2.5']},
+  {id:'m_ecr', type:'milestone', label:'Engineering Concept Release', monthM:4},
+  {id:'2.3.1', type:'wp', index:'2.3.1.', name:'Quality risks + DFMEA', owner:'TQ', status:'Open', prio:'A', startM:3, durM:2, deps:['gate1']},
+  {id:'2.3.2', type:'wp', index:'2.3.2.', name:'SCM risks check', owner:'SCM', status:'Open', prio:'A', startM:3, durM:2, deps:['gate1']},
+  {id:'2.3.3', type:'wp', index:'2.3.3.', name:'Market acceptance test', owner:'PM', status:'Open', prio:'B', startM:2, durM:3, deps:['gate1']},
+  {id:'2.3.4', type:'wp', index:'2.3.4.', name:'QAA new suppliers', owner:'TP', status:'Open', prio:'B', startM:2, durM:3, deps:['gate1']},
+  {id:'2.3.5', type:'wp', index:'2.3.5.', name:'Supplier qualification / audit', owner:'TQ', status:'Open', prio:'B', startM:3, durM:2, deps:['2.3.4']},
+  {id:'m_sup', type:'milestone', label:'Supplier pre-selection', monthM:4},
+  {id:'2.4.1', type:'wp', index:'2.4.1.', name:'Gate 2 preparation (GDX Cistern)', owner:'TDP', status:'Open', prio:'B', startM:4, durM:1, deps:['2.2.8','2.3.1']},
+  {id:'gate2gdx', type:'gate', label:'GATE 2 GDX — 28.05.2026', monthM:4, gdx:true, rapid:false},
+  {id:'2.4.2', type:'wp', index:'2.4.2.', name:'Gate 2 preparation (Rapid SL Upgrade)', owner:'TDP', status:'Open', prio:'B', startM:10, durM:2, deps:['2.3.5']},
+  {id:'gate2rapid', type:'gate', label:'GATE 2 Rapid SL — 10.12.2026', monthM:11, gdx:false, rapid:true},
+
+  {id:'s3', type:'stage', label:'STAGE 3 — Engineering & Specification'},
+  {id:'3.1.1', type:'wp', index:'3.1.1.', name:'Create RFQ drawings / GSO', owner:'RD', status:'Open', prio:'A', startM:5, durM:3, deps:['gate2gdx']},
+  {id:'3.1.2', type:'wp', index:'3.1.2.', name:'Request for Quotation (RFQ)', owner:'TP', status:'Open', prio:'B', startM:6, durM:2, deps:['3.1.1']},
+  {id:'3.1.3', type:'wp', index:'3.1.3.', name:'Design for Manufacturing (DFM)', owner:'RD', status:'Open', prio:'B', startM:6, durM:3, deps:['3.1.1']},
+  {id:'m_dfm', type:'milestone', label:'DFM + Spec freeze', monthM:8},
+  {id:'3.1.4', type:'wp', index:'3.1.4.', name:'Supplier decision', owner:'TP', status:'Open', prio:'B', startM:8, durM:1, deps:['3.1.2','3.1.3']},
+  {id:'m_sup2', type:'milestone', label:'Final supplier decision', monthM:9},
+  {id:'3.1.5', type:'wp', index:'3.1.5.', name:'Final SKU documentation', owner:'RD', status:'Open', prio:'A', startM:9, durM:2, deps:['3.1.4']},
+  {id:'m_ef', type:'milestone', label:'Engineering Freeze', monthM:11},
+  {id:'3.1.6', type:'wp', index:'3.1.6.', name:'User documentation', owner:'TDE', status:'Open', prio:'B', startM:9, durM:2, deps:['3.1.5']},
+  {id:'3.1.7', type:'wp', index:'3.1.7.', name:'Test specification (final)', owner:'TDE', status:'Open', prio:'A', startM:9, durM:2, deps:['3.1.5']},
+  {id:'3.1.8', type:'wp', index:'3.1.8.', name:'Status K for Key-SKUs', owner:'RD', status:'Open', prio:'C', startM:10, durM:2, deps:['3.1.5']},
+  {id:'3.1.9', type:'wp', index:'3.1.9.', name:'PNA spare parts', owner:'PM', status:'Open', prio:'', startM:10, durM:2, deps:['3.1.5']},
+  {id:'3.1.10', type:'wp', index:'3.1.10.', name:'SAP BOM in plant', owner:'TI', status:'Open', prio:'B', startM:10, durM:2, deps:['3.1.5']},
+  {id:'m_bom', type:'milestone', label:'Plant BOM complete (Status 99)', monthM:11},
+  {id:'3.2.1', type:'wp', index:'3.2.1.', name:'Process FMEA & risk analysis', owner:'TI', status:'Open', prio:'A', startM:7, durM:3, deps:['gate2gdx']},
+  {id:'3.2.2', type:'wp', index:'3.2.2.', name:'SCM risk check', owner:'SCM', status:'Open', prio:'A', startM:7, durM:2, deps:['gate2gdx']},
+  {id:'3.2.3', type:'wp', index:'3.2.3.', name:'Warranty conditions / contracts', owner:'TP', status:'Open', prio:'A', startM:7, durM:3, deps:['gate2gdx']},
+  {id:'3.2.4', type:'wp', index:'3.2.4.', name:'Release test specification', owner:'TDE', status:'Open', prio:'A', startM:9, durM:2, deps:['3.1.7']},
+  {id:'3.2.5', type:'wp', index:'3.2.5.', name:'Patent finalization', owner:'RD', status:'Open', prio:'C', startM:9, durM:2, deps:['3.1.5']},
+  {id:'3.2.6', type:'wp', index:'3.2.6.', name:'Construction vs. plant BOM check', owner:'TI', status:'Open', prio:'A', startM:10, durM:2, deps:['3.1.10']},
+  {id:'3.2.7', type:'wp', index:'3.2.7.', name:'EHS update', owner:'TQ', status:'Open', prio:'', startM:10, durM:1, deps:['gate2gdx']},
+  {id:'3.2.8', type:'wp', index:'3.2.8.', name:'DFMEA review', owner:'TQ', status:'Open', prio:'', startM:10, durM:1, deps:['3.2.1']},
+  {id:'3.3.1', type:'wp', index:'3.3.1.', name:'Product cost calculation (SAP)', owner:'TDP', status:'Open', prio:'A', startM:9, durM:2, deps:['3.1.4']},
+  {id:'3.3.2', type:'wp', index:'3.3.2.', name:'Marketing info + samples', owner:'PM', status:'Open', prio:'C', startM:9, durM:2, deps:['gate2gdx']},
+  {id:'3.3.3', type:'wp', index:'3.3.3.', name:'Launch preparation start', owner:'PM', status:'Open', prio:'C', startM:10, durM:2, deps:['gate2gdx']},
+  {id:'3.3.4', type:'wp', index:'3.3.4.', name:'Volume / pricing commitment', owner:'PM', status:'Open', prio:'A', startM:10, durM:2, deps:['3.3.1']},
+  {id:'3.3.5', type:'wp', index:'3.3.5.', name:'Country matrix SKU-level in SAP', owner:'PM', status:'Open', prio:'B', startM:10, durM:2, deps:['3.1.5']},
+  {id:'3.3.6', type:'wp', index:'3.3.6.', name:'Approval plan update', owner:'TDA', status:'Open', prio:'A', startM:10, durM:2, deps:['gate2gdx']},
+  {id:'m_cf', type:'milestone', label:'Commercial freeze', monthM:11},
+  {id:'3.4.1', type:'wp', index:'3.4.1.', name:'Gate 3 preparation (GDX Cistern)', owner:'TDP', status:'Open', prio:'B', startM:11, durM:1, deps:['3.1.10','3.3.4']},
+  {id:'gate3gdx', type:'gate', label:'GATE 3 GDX — 10.12.2026', monthM:11, gdx:true, rapid:false},
+  {id:'3.4.2', type:'wp', index:'3.4.2.', name:'Gate 3 preparation (Rapid SL Upgrade)', owner:'TDP', status:'Open', prio:'B', startM:15, durM:1, deps:['gate2rapid']},
+  {id:'gate3rapid', type:'gate', label:'GATE 3 Rapid SL — 29.04.2027', monthM:15, gdx:false, rapid:true},
+
+  {id:'s4', type:'stage', label:'STAGE 4 — Pilot & Qualification'},
+  {id:'4.1.1', type:'wp', index:'4.1.1.', name:'Documentation for pilot', owner:'RD', status:'Open', prio:'', startM:12, durM:2, deps:['gate3gdx']},
+  {id:'4.1.2', type:'wp', index:'4.1.2.', name:'Set all SKU to Status 1', owner:'PM', status:'Open', prio:'C', startM:12, durM:1, deps:['gate3gdx']},
+  {id:'4.1.3', type:'wp', index:'4.1.3.', name:'Demand planning (APO)', owner:'SCM', status:'Open', prio:'A', startM:12, durM:2, deps:['gate3gdx']},
+  {id:'4.2.1', type:'wp', index:'4.2.1.', name:'Tool & ISIR ordering', owner:'TP', status:'Open', prio:'A', startM:12, durM:1, deps:['gate3gdx']},
+  {id:'4.2.2', type:'wp', index:'4.2.2.', name:'Control plan critical components', owner:'TI', status:'Open', prio:'B', startM:12, durM:2, deps:['gate3gdx']},
+  {id:'m_tool', type:'milestone', label:'Tool orders', monthM:12},
+  {id:'4.2.3', type:'wp', index:'4.2.3.', name:'Tool manufacturing', owner:'TI;TP', status:'Open', prio:'C', startM:13, durM:3, deps:['4.2.1']},
+  {id:'4.2.4', type:'wp', index:'4.2.4.', name:'Tool setup & optimization', owner:'TI;TP', status:'Open', prio:'C', startM:16, durM:2, deps:['4.2.3']},
+  {id:'4.2.5', type:'wp', index:'4.2.5.', name:'ISIR sample testing', owner:'TI', status:'Open', prio:'A', startM:17, durM:2, deps:['4.2.4']},
+  {id:'4.2.6', type:'wp', index:'4.2.6.', name:'ISIR sample rework', owner:'TI;TP', status:'Open', prio:'B', startM:18, durM:1, deps:['4.2.5']},
+  {id:'m_isir', type:'milestone', label:'ISIR samples released', monthM:19},
+  {id:'4.3.1', type:'wp', index:'4.3.1.', name:'Ensure production quality', owner:'TQ', status:'Open', prio:'A', startM:13, durM:3, deps:['gate3gdx']},
+  {id:'4.3.2', type:'wp', index:'4.3.2.', name:'Prepare production in plants', owner:'TI', status:'Open', prio:'A', startM:13, durM:3, deps:['gate3gdx']},
+  {id:'4.3.3', type:'wp', index:'4.3.3.', name:'Production of pilot components', owner:'TI', status:'Open', prio:'C', startM:15, durM:2, deps:['4.2.3']},
+  {id:'4.3.4', type:'wp', index:'4.3.4.', name:'Pilot production', owner:'TI', status:'Open', prio:'A', startM:16, durM:2, deps:['4.3.3']},
+  {id:'4.3.5', type:'wp', index:'4.3.5.', name:'Pilot production loop', owner:'TI', status:'Open', prio:'C', startM:17, durM:1, deps:['4.3.4']},
+  {id:'4.3.6', type:'wp', index:'4.3.6.', name:'Launch validation / availability start', owner:'TI', status:'Open', prio:'A', startM:18, durM:2, deps:['4.3.5']},
+  {id:'4.3.7', type:'wp', index:'4.3.7.', name:'Order serial components', owner:'TI', status:'Open', prio:'C', startM:17, durM:2, deps:['gate3gdx']},
+  {id:'4.3.8', type:'wp', index:'4.3.8.', name:'Components for ramp-up', owner:'TI', status:'Open', prio:'C', startM:18, durM:2, deps:['4.3.7']},
+  {id:'4.4.1', type:'wp', index:'4.4.1.', name:'Qualification of pilot', owner:'TDE', status:'Open', prio:'A', startM:17, durM:3, deps:['4.2.5']},
+  {id:'4.4.2', type:'wp', index:'4.4.2.', name:'Release of pilot', owner:'TQ', status:'Open', prio:'', startM:18, durM:2, deps:['4.4.1']},
+  {id:'4.4.3', type:'wp', index:'4.4.3.', name:'Design quality release (DQR)', owner:'Design', status:'Open', prio:'', startM:18, durM:2, deps:['4.4.1']},
+  {id:'4.4.4', type:'wp', index:'4.4.4.', name:'Field / acceptance test', owner:'TQ', status:'Open', prio:'A', startM:18, durM:2, deps:['4.4.1']},
+  {id:'4.4.5', type:'wp', index:'4.4.5.', name:'Approvals', owner:'TDA', status:'Open', prio:'A', startM:18, durM:2, deps:['4.4.1']},
+  {id:'4.4.6', type:'wp', index:'4.4.6.', name:'FMEA re-evaluation', owner:'TQ', status:'Open', prio:'A', startM:18, durM:2, deps:['4.4.1']},
+  {id:'m_qual', type:'milestone', label:'Qualification achieved', monthM:19},
+  {id:'4.5.1', type:'wp', index:'4.5.1.', name:'Packaging', owner:'PM', status:'Open', prio:'', startM:17, durM:3, deps:['gate3gdx']},
+  {id:'4.5.2', type:'wp', index:'4.5.2.', name:'Final communication material', owner:'PM', status:'Open', prio:'A', startM:17, durM:3, deps:['gate3gdx']},
+  {id:'4.6.1', type:'wp', index:'4.6.1.', name:'Gate 4 preparation (GDX Cistern)', owner:'TDP', status:'Open', prio:'B', startM:18, durM:2, deps:['4.4.4','4.3.6']},
+  {id:'gate4gdx', type:'gate', label:'GATE 4 GDX — 24.06.2027', monthM:17, gdx:true, rapid:false},
+  {id:'4.6.2', type:'wp', index:'4.6.2.', name:'Gate 4 preparation (Rapid SL Upgrade)', owner:'TDP', status:'Open', prio:'B', startM:18, durM:3, deps:['gate3rapid']},
+  {id:'gate4rapid', type:'gate', label:'GATE 4 Rapid SL — 02.09.2027', monthM:20, gdx:false, rapid:true},
+  {id:'launch_gdx', type:'launch', label:'LAUNCH — GDX Cistern Solo India (Q3 2027)', monthM:17},
+  {id:'launch_rapid', type:'launch', label:'LAUNCH — Rapid SL + GDX Cistern Wave 1 (Q3 2027)', monthM:17},
+
+  {id:'s5', type:'stage', label:'STAGE 5 — Launch & Ramp-up'},
+  {id:'5.1.1', type:'wp', index:'5.1.1.', name:'Ramp-up production', owner:'TI', status:'Open', prio:'A', startM:18, durM:3, deps:['gate4gdx']},
+  {id:'5.1.2', type:'wp', index:'5.1.2.', name:'Delivery to CDC', owner:'TI', status:'Open', prio:'C', startM:18, durM:3, deps:['5.1.1']},
+  {id:'5.1.3', type:'wp', index:'5.1.3.', name:'Open to ship (OTS)', owner:'TQ', status:'Open', prio:'A', startM:19, durM:2, deps:['5.1.1']},
+  {id:'m_ots', type:'milestone', label:'Launch & OTS', monthM:20},
+  {id:'5.2.1', type:'wp', index:'5.2.1.', name:'Complaints + customer feedback', owner:'TQ', status:'Open', prio:'A', startM:19, durM:2, deps:['5.1.3']},
+  {id:'5.2.2', type:'wp', index:'5.2.2.', name:'Adjustments to SKU', owner:'TQ;TI', status:'Open', prio:'A', startM:19, durM:2, deps:['5.2.1']},
+  {id:'5.2.3', type:'wp', index:'5.2.3.', name:'Voluntary approvals post-launch', owner:'TDA', status:'Open', prio:'B', startM:19, durM:2, deps:['launch_gdx']},
+  {id:'5.2.4', type:'wp', index:'5.2.4.', name:'ECN for series production', owner:'TI', status:'Open', prio:'B', startM:19, durM:2, deps:['5.1.1']},
+  {id:'5.2.5', type:'wp', index:'5.2.5.', name:'Launch performance monitoring', owner:'PM', status:'Open', prio:'B', startM:19, durM:2, deps:['launch_gdx']},
+];
+
+// Build lookup
+const itemMap = {};
+RAW.forEach(r => { itemMap[r.id] = r; });
+
+// Original durations and starts — converted to WEEK indices for the Gantt
+const origDur = {}, origStart = {};
+RAW.forEach(r => {
+  if(r.type==='wp'){
+    origStart[r.id] = monthStartToWeek(r.startM);
+    origDur[r.id]   = monthDurToWeeks(r.startM, r.durM);
+  }
+});
+
+// delta storage: user-set durations
+const userDur = {};
+
+function getEffDur(id) { return userDur[id] !== undefined ? userDur[id] : origDur[id]; }
+function getEffStart(id) {
+  const r = itemMap[id];
+  if(!r || r.type!=='wp') return r ? monthToWeekIdx(r.monthM||0) : 0;
+  if(!r.deps || r.deps.length===0) return origStart[id];
+  let maxEnd = origStart[id];
+  r.deps.forEach(did => {
+    const d = itemMap[did];
+    if(!d) return;
+    let dEnd;
+    if(d.type==='gate'||d.type==='milestone'||d.type==='launch') dEnd = monthToWeekIdx(d.monthM||0)+1;
+    else dEnd = getEffStart(did) + getEffDur(did);
+    if(dEnd > maxEnd) maxEnd = dEnd;
+  });
+  return Math.max(origStart[id], maxEnd);
+}
+
+function getEffEnd(id) {
+  const r = itemMap[id];
+  if(!r) return 0;
+  if(r.type==='wp') return getEffStart(id) + getEffDur(id);
+  return monthToWeekIdx(r.monthM||0)+1;
+}
+
+function isDelayed(id) {
+  const r = itemMap[id];
+  if(!r || r.type!=='wp') return false;
+  return getEffStart(id) > origStart[id] || getEffDur(id) !== origDur[id];
+}
+
+// Today = W12/2026 (March 24, 2026) → index 11 in WEEKS array (0-based, W01=0)
+const TODAY_WEEK_IDX = 11;
+
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// For month band: each entry has label, start week index, span (weeks)
+const MONTH_BANDS = (function(){
+  const bands = [];
+  for(let m=0; m<21; m++){
+    const startW = MONTH_TO_WEEK[m];
+    const endW = MONTH_TO_WEEK[m+1] !== undefined ? MONTH_TO_WEEK[m+1] : WEEKS.length;
+    const year = 2026 + Math.floor(m/12);
+    const mon = m % 12;
+    bands.push({ label: MONTH_NAMES[mon]+' '+year, startW, span: endW - startW });
+  }
+  return bands;
+})();
+
+// Build header — month band + calendar weeks
+function buildHeaders() {
+  // Month band
+  const mb = document.getElementById('monthBand');
+  mb.innerHTML = '';
+  MONTH_BANDS.forEach(b => {
+    const div = document.createElement('div');
+    div.className = 'month-band-cell';
+    div.style.width = (b.span * 28) + 'px';
+    div.style.minWidth = (b.span * 28) + 'px';
+    div.textContent = b.label;
+    mb.appendChild(div);
+  });
+
+  // Week row
+  const mh = document.getElementById('monthHeaders');
+  mh.innerHTML = '';
+  WEEKS.forEach((w, i) => {
+    const isYearEnd2026 = (w.year===2026 && w.week===52);
+    const isQ1end = (w.week===13);
+    const isQ2end = (w.week===26);
+    const isQ3end = (w.week===39);
+    const isToday = (i === TODAY_WEEK_IDX);
+    const borderClass = isYearEnd2026 ? 'yborder' : (isQ1end||isQ2end||isQ3end ? 'qborder' : '');
+    const div = document.createElement('div');
+    div.className = 'month-header-cell' + (borderClass ? ' '+borderClass : '') + (isToday ? ' today-col' : '');
+    const todayDot = isToday ? `<span style="color:#1a2a4a;font-size:8px;line-height:1">▼</span>` : '';
+    div.innerHTML = `${todayDot}<span>W${String(w.week).padStart(2,'0')}</span>`;
+    mh.appendChild(div);
+  });
+}
+
+let filterStatus = 'all', filterStage = 'all', searchTerm = '';
+
+function matchesFilter(r) {
+  if(r.type==='stage') return filterStage==='all' || r.id==='s'+filterStage;
+  if(r.type==='gate'||r.type==='milestone'||r.type==='launch') return true;
+  if(r.type!=='wp') return true;
+  const stg = r.id.split('.')[0];
+  if(filterStage!=='all' && stg!==filterStage) return false;
+  if(filterStatus!=='all' && r.status!==filterStatus) return false;
+  if(searchTerm && !r.name.toLowerCase().includes(searchTerm)) return false;
+  return true;
+}
+
+function render() {
+  buildHeaders();
+  const lr = document.getElementById('leftRows');
+  const gr = document.getElementById('ganttRows');
+  lr.innerHTML = ''; gr.innerHTML = '';
+
+  RAW.forEach(r => {
+    if(!matchesFilter(r)) return;
+    // Left row
+    const leftRow = document.createElement('div');
+    leftRow.className = 'row' + (r.type==='stage'?' stage-row':r.type==='milestone'?' milestone-row':r.type==='gate'?' gate-row':r.type==='launch'?' launch-row':'');
+    leftRow.style.height = r.type==='stage'?'32px':'28px';
+
+    if(r.type==='stage') {
+      leftRow.innerHTML = `<div class="cell" style="width:100%;font-size:12px;color:#fff;font-weight:700;padding-left:10px">${r.label}</div>`;
+    } else if(r.type==='milestone') {
+      leftRow.innerHTML = `<div class="cell col-index"></div><div class="cell col-name" style="font-style:italic;font-size:11px;color:#888">◆ ${r.label}</div><div class="cell col-owner"></div><div class="cell col-status"></div><div class="cell col-dur"></div>`;
+    } else if(r.type==='gate') {
+      leftRow.innerHTML = `<div class="cell col-index"></div><div class="cell col-name" style="font-size:11px;font-weight:700;color:#1a5a1a">★ ${r.label}</div><div class="cell col-owner"></div><div class="cell col-status"></div><div class="cell col-dur"></div>`;
+    } else if(r.type==='launch') {
+      leftRow.innerHTML = `<div class="cell col-index"></div><div class="cell col-name" style="font-size:11px;font-weight:700;color:#a04000">🚀 ${r.label}</div><div class="cell col-owner"></div><div class="cell col-status"></div><div class="cell col-dur"></div>`;
+    } else {
+      // wp
+      const delayed = isDelayed(r.id);
+      const dur = getEffDur(r.id);
+      const modified = userDur[r.id]!==undefined;
+      const sbClass = r.status==='Done'?'s-done':r.status==='In Progress'?'s-inprogress':'s-open';
+      leftRow.innerHTML = `
+        <div class="cell col-index" style="font-size:10px;color:#888">${r.index||''}</div>
+        <div class="cell col-name" title="${r.name}" style="${delayed?'color:#c00;':''}">${r.name}</div>
+        <div class="cell col-owner" style="text-align:center;font-size:10px;color:#666">${r.owner||''}</div>
+        <div class="cell col-status"><span class="status-badge ${sbClass}">${r.status||''}</span></div>
+        <div class="cell col-dur dur-cell" id="durcell_${r.id}">
+          <span class="dur-display ${modified?'modified':''}" onclick="startEdit('${r.id}')" title="Click to change duration">${dur}w</span>
+        </div>`;
+    }
+    lr.appendChild(leftRow);
+
+    // Gantt row
+    const gRow = document.createElement('div');
+    gRow.className = 'gantt-row' + (r.type==='stage'?' gantt-stage-row':r.type==='milestone'?' gantt-milestone-row':r.type==='gate'?' gantt-gate-row':r.type==='launch'?' gantt-launch-row':'');
+    gRow.style.height = r.type==='stage'?'32px':'28px';
+
+    let cellsHtml = '';
+    WEEKS.forEach((w, wi) => {
+      const isYearEnd2026 = (w.year===2026 && w.week===52);
+      const isQ1end = (w.week===13);
+      const isQ2end = (w.week===26);
+      const isQ3end = (w.week===39);
+      const isToday = (wi === TODAY_WEEK_IDX);
+      const borderClass = isYearEnd2026 ? 'yborder' : (isQ1end||isQ2end||isQ3end ? 'qborder' : '');
+      let cellContent = '';
+      if(r.type==='wp') {
+        const s = getEffStart(r.id), e = s + getEffDur(r.id);
+        if(wi>=s && wi<e) {
+          const delayed = isDelayed(r.id);
+          const barClass = delayed ? 'bar-delayed' : (r.status==='Done'?'bar-done':r.status==='In Progress'?'bar-inprogress':'bar-open');
+          cellContent = `<div class="bar ${barClass}"></div>`;
+        }
+      } else if(r.type==='milestone') {
+        if(wi===monthToWeekIdx(r.monthM)) cellContent = `<div class="diamond"></div>`;
+      } else if(r.type==='gate') {
+        if(wi===monthToWeekIdx(r.monthM)) cellContent = `<div class="gate-marker"></div>`;
+      } else if(r.type==='launch') {
+        if(wi===monthToWeekIdx(r.monthM)) cellContent = `<span class="launch-marker" style="font-size:14px">🚀</span>`;
+      }
+      cellsHtml += `<div class="mcell ${borderClass}${isToday?' today-col':''}">${cellContent}</div>`;
+    });
+    gRow.innerHTML = cellsHtml;
+    gr.appendChild(gRow);
+  });
+}
+
+function startEdit(id) {
+  const r = itemMap[id];
+  const cell = document.getElementById('durcell_'+id);
+  if(!cell) return;
+  const cur = getEffDur(id);
+  cell.innerHTML = `<input class="dur-input" type="number" min="1" max="104" value="${cur}" id="inp_${id}" onblur="commitEdit('${id}')" onkeydown="if(event.key==='Enter')commitEdit('${id}');if(event.key==='Escape')cancelEdit('${id}')">`;
+  const inp = document.getElementById('inp_'+id);
+  inp.focus(); inp.select();
+}
+
+function cancelEdit(id) { render(); }
+
+function commitEdit(id) {
+  const inp = document.getElementById('inp_'+id);
+  if(!inp) return;
+  const val = parseInt(inp.value);
+  if(!isNaN(val) && val>=1 && val<=104) {
+    userDur[id] = val;
+    showImpact(id, val);
+  }
+  render();
+}
+
+function showImpact(changedId, newDur) {
+  const orig = origDur[changedId];
+  const diff = newDur - orig;
+  if(diff===0) { document.getElementById('impactBanner').classList.remove('show'); return; }
+  // Find all items affected downstream
+  const affected = [];
+  RAW.forEach(r => {
+    if(r.type==='wp' && r.id!==changedId) {
+      const ns = getEffStart(r.id);
+      if(ns > origStart[r.id]) affected.push(r.name);
+    }
+  });
+  const banner = document.getElementById('impactBanner');
+  const sign = diff>0?'+':'';
+  banner.textContent = `Duration of "${itemMap[changedId].name}" changed by ${sign}${diff} week(s). ${affected.length} downstream work package(s) shifted.`;
+  banner.classList.add('show');
+}
+
+function resetAll() {
+  Object.keys(userDur).forEach(k => delete userDur[k]);
+  document.getElementById('impactBanner').classList.remove('show');
+  render();
+}
+
+document.getElementById('filterStatus').addEventListener('change', e => { filterStatus=e.target.value; render(); });
+document.getElementById('filterStage').addEventListener('change', e => { filterStage=e.target.value; render(); });
+document.getElementById('searchBox').addEventListener('input', e => { searchTerm=e.target.value.toLowerCase(); render(); });
+
+// Sync scroll between left and right vertical
+const lp = document.getElementById('leftPanel');
+const rp = document.getElementById('rightPanel');
+let syncing = false;
+function makeScroller(from, to) {
+  from.addEventListener('scroll', () => { if(syncing) return; syncing=true; to.scrollTop=from.scrollTop; syncing=false; });
+}
+// Wrap in scrollable divs
+lp.style.overflowY = 'auto';
+lp.style.maxHeight = 'calc(100vh - 120px)';
+rp.style.overflowY = 'auto';
+rp.style.maxHeight = 'calc(100vh - 120px)';
+rp.style.overflowX = 'auto';
+makeScroller(lp, rp);
+makeScroller(rp, lp);
+
+render();
+</script>
+</body>
+</html>
