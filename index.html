@@ -82,7 +82,7 @@
   .bar-done { background: #4caf7a; }
   .bar-inprogress { background: #ffc107; }
   .bar-open { background: #5b8dd9; }
-  .bar-delayed { background: #e74c3c !important; }
+  .bar-delayed { background: #e74c3c; }
 
   .diamond { width: 8px; height: 8px; transform: rotate(45deg); border: 2px solid #555; background: #fff; }
   .gate-marker { width: 8px; height: 8px; transform: rotate(45deg); background: #1a7a1a; }
@@ -477,7 +477,7 @@ function render() {
       const sbClass = effStatus==='Done'?'s-done':effStatus==='In Progress'?'s-inprogress':'s-open';
       leftRow.innerHTML = `
         <div class="cell col-index" style="font-size:10px;color:#888">${r.index||''}</div>
-        <div class="cell col-name" title="${r.name}" style="${delayed && effStatus!=='Done'?'color:#c00;':''}">${r.name}</div>
+        <div class="cell col-name" title="${r.name}" style="${delayed && effStatus==='Open'?'color:#c00;':''}">${r.name}</div>
         <div class="cell col-owner" style="text-align:center;font-size:10px;color:#666">${r.owner||''}</div>
         <div class="cell col-status"><select class="status-select ${sbClass}" onchange="changeStatus('${r.id}', this)">
           <option value="Open" ${effStatus==='Open'?'selected':''}>Open</option>
@@ -509,7 +509,7 @@ function render() {
         if(wi>=s && wi<e) {
           const delayed = isDelayed(r.id);
           const effSt = userStatus[r.id] !== undefined ? userStatus[r.id] : r.status;
-          const barClass = effSt==='Done' ? 'bar-done' : (delayed ? 'bar-delayed' : (effSt==='In Progress'?'bar-inprogress':'bar-open'));
+          const barClass = effSt==='Done' ? 'bar-done' : effSt==='In Progress' ? 'bar-inprogress' : (delayed ? 'bar-delayed' : 'bar-open');
           cellContent = `<div class="bar ${barClass}"></div>`;
         }
       } else if(r.type==='milestone') {
