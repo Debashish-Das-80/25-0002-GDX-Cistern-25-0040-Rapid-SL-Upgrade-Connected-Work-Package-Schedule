@@ -353,6 +353,7 @@ function changeStatus(id, sel) {
   const newStatus = sel.value;
   userStatus[id] = newStatus;
   r.status = newStatus;
+  saveToSheet(id, newStatus, undefined);
   render();
 }
 
@@ -545,6 +546,7 @@ function commitEdit(id) {
   const val = parseInt(inp.value);
   if(!isNaN(val) && val>=1 && val<=104) {
     userDur[id] = val;
+    saveToSheet(id, undefined, val);
     showImpact(id, val);
   }
   render();
@@ -576,6 +578,42 @@ function resetAll() {
   render();
 }
 
+// ── Google Sheets sync ──────────────────────────────────────────
+const SHEET_URL = 'https://script.google.com/a/macros/lixil.com/s/AKfycbxuPyPp0hDVCnj2TgRm2-HtK5XJVMWpJ7-BsAwm9MCTf8dsO98A7aXSFfg5e8hsTw_E3Q/exec';
+
+function saveToSheet(id, status, duration) {
+  const payload = { id };
+  if (status !== undefined) payload.status = status;
+  if (duration !== undefined) payload.duration = duration;
+  fetch(SHEET_URL, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }).catch(err => console.warn('Save failed:', err));
+}
+
+function loadFromSheet() {
+  const banner = document.getElementById('impactBanner');
+  banner.textContent = 'Loading saved data…';
+  banner.classList.add('show');
+  fetch(SHEET_URL)
+    .then(r => r.json())
+    .then(data => {
+      Object.keys(data).forEach(id => {
+        const r = itemMap[id];
+        if (!r) return;
+        if (data[id].status) { userStatus[id] = data[id].status; r.status = data[id].status; }
+        if (data[id].duration) { userDur[id] = parseInt(data[id].duration); }
+      });
+      banner.classList.remove('show');
+      render();
+    })
+    .catch(err => {
+      banner.textContent = 'Could not load saved data — working offline.';
+      setTimeout(() => banner.classList.remove('show'), 3000);
+    });
+}
+// ────────────────────────────────────────────────────────────────
+
 document.getElementById('filterStatus').addEventListener('change', e => { filterStatus=e.target.value; render(); });
 document.getElementById('filterStage').addEventListener('change', e => { filterStage=e.target.value; render(); });
 document.getElementById('searchBox').addEventListener('input', e => { searchTerm=e.target.value.toLowerCase(); render(); });
@@ -597,6 +635,7 @@ makeScroller(lp, rp);
 makeScroller(rp, lp);
 
 render();
+loadFromSheet();
 </script>
 </body>
 </html>
