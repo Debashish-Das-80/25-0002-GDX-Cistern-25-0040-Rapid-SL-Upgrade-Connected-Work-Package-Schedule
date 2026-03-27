@@ -29,6 +29,7 @@
   .col-owner { width: 48px; text-align: center; }
   .col-status { width: 80px; text-align: center; }
   .col-dur { width: 52px; text-align: center; }
+  .col-start { width: 62px; text-align: center; }
 
   .right-panel { flex: 1; overflow: auto; }
   .month-band { display: flex; position: sticky; top: 0; z-index: 6; background: #e8ecf4; border-bottom: 1px solid #ccc; height: 18px; }
@@ -63,9 +64,13 @@
   .status-select:focus { outline: 2px solid #1a2a4a; }
 
   .dur-cell { width: 52px; text-align: center; cursor: pointer; }
+  .start-cell { width: 62px; text-align: center; cursor: pointer; }
   .dur-input { width: 40px; text-align: center; border: 1px solid #aaa; border-radius: 3px; font-size: 11px; padding: 1px 3px; }
+  .start-input { width: 52px; text-align: center; border: 1px solid #aaa; border-radius: 3px; font-size: 11px; padding: 1px 3px; }
   .dur-display { font-size: 11px; color: #444; border-bottom: 1px dashed #aaa; min-width: 28px; text-align: center; cursor: pointer; }
   .dur-display.modified { color: #c00; font-weight: 700; }
+  .start-display { font-size: 10px; color: #444; border-bottom: 1px dashed #5b8dd9; min-width: 42px; text-align: center; cursor: pointer; white-space: nowrap; }
+  .start-display.modified { color: #0055cc; font-weight: 700; }
 
   .gantt-row { display: flex; height: 28px; align-items: center; border-bottom: 1px solid #f0f0f0; }
   .gantt-row:hover { background: #f9f9ff; }
@@ -107,7 +112,7 @@
 <div class="header">
   <div>
     <div class="h1">25-0002 GDX Cistern &nbsp;|&nbsp; 25-0040 Rapid SL Upgrade — Connected Work Package Schedule</div>
-    <div class="sub">Interactive mode · Calendar weeks (ISO) · click any duration to edit — downstream work packages update automatically</div>
+    <div class="sub">Interactive mode · Calendar weeks (ISO) · click any duration or start week to edit — downstream work packages update automatically</div>
   </div>
 </div>
 
@@ -144,6 +149,7 @@
       <div class="col-h col-name">Work Package</div>
       <div class="col-h col-owner">Owner</div>
       <div class="col-h col-status">Status</div>
+      <div class="col-h col-start">Start (CW)</div>
       <div class="col-h col-dur">Dur (w)</div>
     </div>
     <div id="leftRows"></div>
@@ -343,8 +349,9 @@ RAW.forEach(r => {
   }
 });
 
-// delta storage: user-set durations
+// delta storage: user-set durations, starts, statuses
 const userDur = {};
+const userStart = {};
 const userStatus = {};
 
 function changeStatus(id, sel) {
@@ -361,6 +368,8 @@ function getEffDur(id) { return userDur[id] !== undefined ? userDur[id] : origDu
 function getEffStart(id) {
   const r = itemMap[id];
   if(!r || r.type!=='wp') return r ? monthToWeekIdx(r.monthM||0) : 0;
+  // If user has manually set a start week, use it directly (ignoring deps)
+  if(userStart[id] !== undefined) return userStart[id];
   if(!r.deps || r.deps.length===0) return origStart[id];
   let maxEnd = origStart[id];
   r.deps.forEach(did => {
@@ -384,6 +393,7 @@ function getEffEnd(id) {
 function isDelayed(id) {
   const r = itemMap[id];
   if(!r || r.type!=='wp') return false;
+  if(userStart[id] !== undefined) return false; // manually set start = not delayed
   return getEffStart(id) > origStart[id] || getEffDur(id) !== origDur[id];
 }
 
@@ -474,7 +484,11 @@ function render() {
       // wp
       const delayed = isDelayed(r.id);
       const dur = getEffDur(r.id);
+      const effStart = getEffStart(r.id);
+      const startWeek = WEEKS[effStart];
+      const startLabel = startWeek ? `W${String(startWeek.week).padStart(2,'0')}/${startWeek.year}` : '—';
       const modified = userDur[r.id]!==undefined;
+      const startModified = userStart[r.id]!==undefined;
       const effStatus = userStatus[r.id] !== undefined ? userStatus[r.id] : r.status;
       const sbClass = effStatus==='Done'?'s-done':effStatus==='In Progress'?'s-inprogress':'s-open';
       leftRow.innerHTML = `
@@ -486,6 +500,9 @@ function render() {
           <option value="In Progress" ${effStatus==='In Progress'?'selected':''}>In Progress</option>
           <option value="Done" ${effStatus==='Done'?'selected':''}>Done</option>
         </select></div>
+        <div class="cell start-cell" id="startcell_${r.id}">
+          <span class="start-display ${startModified?'modified':''}" onclick="startEditStart('${r.id}')" title="Click to change start week">${startLabel}</span>
+        </div>
         <div class="cell col-dur dur-cell" id="durcell_${r.id}">
           <span class="dur-display ${modified?'modified':''}" onclick="startEdit('${r.id}')" title="Click to change duration">${dur}w</span>
         </div>`;
@@ -540,6 +557,42 @@ function startEdit(id) {
 
 function cancelEdit(id) { render(); }
 
+function startEditStart(id) {
+  const cell = document.getElementById('startcell_'+id);
+  if(!cell) return;
+  const effStart = getEffStart(id);
+  const startWeek = WEEKS[effStart];
+  // Build dropdown of all available weeks
+  const opts = WEEKS.map((w, i) => {
+    const label = `W${String(w.week).padStart(2,'0')}/${w.year}`;
+    const sel = i === effStart ? 'selected' : '';
+    return `<option value="${i}" ${sel}>${label}</option>`;
+  }).join('');
+  cell.innerHTML = `<select class="start-input" id="startinp_${id}"
+    onchange="commitEditStart('${id}',this.value)"
+    onblur="cancelEditStart('${id}')"
+    onkeydown="if(event.key==='Escape')cancelEditStart('${id}')"
+    >${opts}</select>`;
+  const sel = document.getElementById('startinp_'+id);
+  sel.focus();
+}
+
+function cancelEditStart(id) { render(); }
+
+function commitEditStart(id, val) {
+  const idx = parseInt(val);
+  if(!isNaN(idx) && idx >= 0 && idx < WEEKS.length) {
+    userStart[id] = idx;
+    saveToSheet(id, undefined, undefined, idx);
+    // Show impact
+    const w = WEEKS[idx];
+    const banner = document.getElementById('impactBanner');
+    banner.textContent = `Start of "${itemMap[id].name}" set to W${String(w.week).padStart(2,'0')}/${w.year}. Note: downstream dependency shifts are not applied when start is manually overridden.`;
+    banner.classList.add('show');
+  }
+  render();
+}
+
 function commitEdit(id) {
   const inp = document.getElementById('inp_'+id);
   if(!inp) return;
@@ -572,6 +625,7 @@ function showImpact(changedId, newDur) {
 
 function resetAll() {
   Object.keys(userDur).forEach(k => delete userDur[k]);
+  Object.keys(userStart).forEach(k => delete userStart[k]);
   Object.keys(userStatus).forEach(k => delete userStatus[k]);
   RAW.forEach(r => { if(r.type==='wp' && r._origStatus) r.status = r._origStatus; });
   document.getElementById('impactBanner').classList.remove('show');
@@ -581,10 +635,11 @@ function resetAll() {
 // ── Google Sheets sync ──────────────────────────────────────────
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyFyxuYt5dx23FHFTBePxafb8PTEdWMM78Z28_eWAffBVIuZSB-6boXnoKok5VxXMBz/exec';
 
-function saveToSheet(id, status, duration) {
+function saveToSheet(id, status, duration, startWeek) {
   const payload = { id };
   if (status !== undefined) payload.status = status;
   if (duration !== undefined) payload.duration = duration;
+  if (startWeek !== undefined) payload.startWeek = startWeek;
   fetch(SHEET_URL, {
     method: 'POST',
     body: JSON.stringify(payload)
@@ -603,6 +658,7 @@ function loadFromSheet() {
         if (!r) return;
         if (data[id].status) { userStatus[id] = data[id].status; r.status = data[id].status; }
         if (data[id].duration) { userDur[id] = parseInt(data[id].duration); }
+        if (data[id].startWeek !== undefined && data[id].startWeek !== '') { userStart[id] = parseInt(data[id].startWeek); }
       });
       banner.classList.remove('show');
       render();
