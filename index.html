@@ -173,20 +173,30 @@
 </div>
 
 <script>
-// Calendar weeks: W01/2026 (index 0) through W39/2027 (index 91)
+// Calendar weeks: W01/2026 (index 0) through W52/2028
 // W01/2026 starts 2025-12-29; each entry = one ISO calendar week
 const WEEKS = (function(){
   const w = [];
   // 2026: W01–W52
   for(let i=1;i<=52;i++) w.push({week:i,year:2026});
-  // 2027: W01–W39
-  for(let i=1;i<=39;i++) w.push({week:i,year:2027});
+  // 2027: W01–W52
+  for(let i=1;i<=52;i++) w.push({week:i,year:2027});
+  // 2028: W01–W52
+  for(let i=1;i<=52;i++) w.push({week:i,year:2028});
   return w;
 })();
 
 // Month-to-week-index: MONTH_TO_WEEK[m] = week index where month m begins
-// month 0=Jan2026 … 21=Oct2027
-const MONTH_TO_WEEK = [0,4,8,13,17,22,26,30,35,39,43,48,52,57,61,65,69,74,78,82,87,91];
+// month 0=Jan2026 … 35=Dec2028
+// 2026: Jan=0,Feb=4,Mar=8,Apr=13,May=17,Jun=22,Jul=26,Aug=30,Sep=35,Oct=39,Nov=43,Dec=48
+// 2027: Jan=52,Feb=57,Mar=61,Apr=65,May=69,Jun=74,Jul=78,Aug=82,Sep=87,Oct=91,Nov=95,Dec=100
+// 2028: Jan=104,Feb=109,Mar=113,Apr=117,May=122,Jun=126,Jul=130,Aug=135,Sep=139,Oct=143,Nov=148,Dec=152
+const MONTH_TO_WEEK = [
+  0,4,8,13,17,22,26,30,35,39,43,48,       // 2026 Jan–Dec
+  52,57,61,65,69,74,78,82,87,91,95,100,    // 2027 Jan–Dec
+  104,109,113,117,122,126,130,135,139,143,148,152, // 2028 Jan–Dec
+  156 // sentinel (end of 2028)
+];
 
 // Convert original month-based startM / durM to week indices
 function monthStartToWeek(startM) { return MONTH_TO_WEEK[startM] || 0; }
@@ -404,7 +414,7 @@ const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'
 // For month band: each entry has label, start week index, span (weeks)
 const MONTH_BANDS = (function(){
   const bands = [];
-  for(let m=0; m<21; m++){
+  for(let m=0; m<36; m++){
     const startW = MONTH_TO_WEEK[m];
     const endW = MONTH_TO_WEEK[m+1] !== undefined ? MONTH_TO_WEEK[m+1] : WEEKS.length;
     const year = 2026 + Math.floor(m/12);
@@ -432,12 +442,12 @@ function buildHeaders() {
   const mh = document.getElementById('monthHeaders');
   mh.innerHTML = '';
   WEEKS.forEach((w, i) => {
-    const isYearEnd2026 = (w.year===2026 && w.week===52);
+    const isYearEnd = (w.week===52);
     const isQ1end = (w.week===13);
     const isQ2end = (w.week===26);
     const isQ3end = (w.week===39);
     const isToday = (i === TODAY_WEEK_IDX);
-    const borderClass = isYearEnd2026 ? 'yborder' : (isQ1end||isQ2end||isQ3end ? 'qborder' : '');
+    const borderClass = isYearEnd ? 'yborder' : (isQ1end||isQ2end||isQ3end ? 'qborder' : '');
     const div = document.createElement('div');
     div.className = 'month-header-cell' + (borderClass ? ' '+borderClass : '') + (isToday ? ' today-col' : '');
     const todayDot = isToday ? `<span style="color:#1a2a4a;font-size:8px;line-height:1">▼</span>` : '';
@@ -516,12 +526,12 @@ function render() {
 
     let cellsHtml = '';
     WEEKS.forEach((w, wi) => {
-      const isYearEnd2026 = (w.year===2026 && w.week===52);
+      const isYearEnd = (w.week===52);
       const isQ1end = (w.week===13);
       const isQ2end = (w.week===26);
       const isQ3end = (w.week===39);
       const isToday = (wi === TODAY_WEEK_IDX);
-      const borderClass = isYearEnd2026 ? 'yborder' : (isQ1end||isQ2end||isQ3end ? 'qborder' : '');
+      const borderClass = isYearEnd ? 'yborder' : (isQ1end||isQ2end||isQ3end ? 'qborder' : '');
       let cellContent = '';
       if(r.type==='wp') {
         const s = getEffStart(r.id), e = s + getEffDur(r.id);
