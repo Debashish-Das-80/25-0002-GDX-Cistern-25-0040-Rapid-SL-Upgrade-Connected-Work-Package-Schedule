@@ -56,10 +56,12 @@
   .s-done { background: #d4edda; color: #155724; }
   .s-inprogress { background: #fff3cd; color: #856404; }
   .s-open { background: #e2e8f0; color: #444; }
+  .s-notrelevant { background: #eeeeee; color: #999; }
   .status-select { font-size: 10px; font-weight: 600; border-radius: 3px; border: 1px solid transparent; cursor: pointer; padding: 1px 2px; width: 76px; text-align: center; }
   .status-select.s-done { background: #d4edda; color: #155724; }
   .status-select.s-inprogress { background: #fff3cd; color: #856404; }
   .status-select.s-open { background: #e2e8f0; color: #444; }
+  .status-select.s-notrelevant { background: #eeeeee; color: #999; }
   .status-select:hover { border-color: #aaa; }
   .status-select:focus { outline: 2px solid #1a2a4a; }
 
@@ -89,6 +91,7 @@
   .bar-inprogress { background: #ffc107 !important; }
   .bar-open { background: #5b8dd9; }
   .bar-delayed { background: #e74c3c; }
+  .bar-notrelevant { background: #cccccc !important; opacity: 0.5; }
 
   .diamond { width: 8px; height: 8px; transform: rotate(45deg); border: 2px solid #555; background: #fff; }
   .gate-marker { width: 8px; height: 8px; transform: rotate(45deg); background: #1a7a1a; }
@@ -123,6 +126,7 @@
       <option value="Done">Done</option>
       <option value="In Progress">In Progress</option>
       <option value="Open">Open</option>
+      <option value="Not Relevant">Not Relevant</option>
     </select>
   </label>
   <label>Filter stage:
@@ -167,6 +171,7 @@
   <div class="leg-item"><div class="leg-bar" style="background:#ffc107"></div> In Progress</div>
   <div class="leg-item"><div class="leg-bar" style="background:#5b8dd9"></div> Open / Planned</div>
   <div class="leg-item"><div class="leg-bar" style="background:#e74c3c"></div> Delayed (cascade)</div>
+  <div class="leg-item"><div class="leg-bar" style="background:#cccccc;opacity:0.5"></div> Not Relevant</div>
   <div class="leg-item"><div style="width:12px;height:12px;transform:rotate(45deg);border:2px solid #555;background:#fff;display:inline-block"></div> &nbsp;Internal milestone</div>
   <div class="leg-item"><div style="width:12px;height:12px;transform:rotate(45deg);background:#1a7a1a;display:inline-block"></div> &nbsp;Gate</div>
   <div class="leg-item">🚀 Launch</div>
@@ -500,15 +505,17 @@ function render() {
       const modified = userDur[r.id]!==undefined;
       const startModified = userStart[r.id]!==undefined;
       const effStatus = userStatus[r.id] !== undefined ? userStatus[r.id] : r.status;
-      const sbClass = effStatus==='Done'?'s-done':effStatus==='In Progress'?'s-inprogress':'s-open';
+      const sbClass = effStatus==='Done'?'s-done':effStatus==='In Progress'?'s-inprogress':effStatus==='Not Relevant'?'s-notrelevant':'s-open';
+      const nameStyle = effStatus==='Not Relevant' ? 'color:#aaa;text-decoration:line-through;' : (delayed && effStatus==='Open'?'color:#c00;':'');
       leftRow.innerHTML = `
         <div class="cell col-index" style="font-size:10px;color:#888">${r.index||''}</div>
-        <div class="cell col-name" title="${r.name}" style="${delayed && effStatus==='Open'?'color:#c00;':''}">${r.name}</div>
+        <div class="cell col-name" title="${r.name}" style="${nameStyle}">${r.name}</div>
         <div class="cell col-owner" style="text-align:center;font-size:10px;color:#666">${r.owner||''}</div>
         <div class="cell col-status"><select class="status-select ${sbClass}" onchange="changeStatus('${r.id}', this)">
           <option value="Open" ${effStatus==='Open'?'selected':''}>Open</option>
           <option value="In Progress" ${effStatus==='In Progress'?'selected':''}>In Progress</option>
           <option value="Done" ${effStatus==='Done'?'selected':''}>Done</option>
+          <option value="Not Relevant" ${effStatus==='Not Relevant'?'selected':''}>Not Relevant</option>
         </select></div>
         <div class="cell start-cell" id="startcell_${r.id}">
           <span class="start-display ${startModified?'modified':''}" onclick="startEditStart('${r.id}')" title="Click to change start week">${startLabel}</span>
@@ -538,7 +545,7 @@ function render() {
         if(wi>=s && wi<e) {
           const delayed = isDelayed(r.id);
           const effSt = userStatus[r.id] !== undefined ? userStatus[r.id] : r.status;
-          const barClass = effSt==='Done' ? 'bar-done' : effSt==='In Progress' ? 'bar-inprogress' : (delayed ? 'bar-delayed' : 'bar-open');
+          const barClass = effSt==='Done' ? 'bar-done' : effSt==='In Progress' ? 'bar-inprogress' : effSt==='Not Relevant' ? 'bar-notrelevant' : (delayed ? 'bar-delayed' : 'bar-open');
           cellContent = `<div class="bar ${barClass}"></div>`;
         }
       } else if(r.type==='milestone') {
