@@ -412,8 +412,16 @@ function isDelayed(id) {
   return getEffStart(id) > origStart[id] || getEffDur(id) !== origDur[id];
 }
 
-// Today = W12/2026 (March 24, 2026) → index 11 in WEEKS array (0-based, W01=0)
-const TODAY_WEEK_IDX = 11;
+// Dynamically calculate today's ISO week index in the WEEKS array
+function getISOWeek(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return { week: Math.ceil((((d - yearStart) / 86400000) + 1) / 7), year: d.getUTCFullYear() };
+}
+const todayISO = getISOWeek(new Date());
+const TODAY_WEEK_IDX = WEEKS.findIndex(w => w.week === todayISO.week && w.year === todayISO.year);
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 // For month band: each entry has label, start week index, span (weeks)
