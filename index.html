@@ -50,6 +50,9 @@
 
   .milestone-row { background: #f8f4e8 !important; font-style: italic; font-size: 11px; color: #666; }
   .gate-row { background: #e8f0e8 !important; font-weight: 700; font-size: 12px; color: #1a5a1a; }
+  .gate-date-display { border-bottom: 1px dashed #1a5a1a; cursor: pointer; }
+  .gate-date-display.gate-date-modified { color: #0055cc; border-color: #0055cc; }
+  .gate-date-input { font-size: 11px; padding: 1px 3px; border: 1px solid #1a5a1a; border-radius: 3px; }
   .launch-row { background: #fff0e0 !important; font-weight: 700; font-size: 12px; color: #a04000; }
 
   .status-badge { font-size: 10px; padding: 1px 5px; border-radius: 3px; font-weight: 600; white-space: nowrap; }
@@ -211,6 +214,67 @@ function monthDurToWeeks(startM, durM) {
 }
 // For milestone/gate monthM -> week index
 function monthToWeekIdx(monthM) { return MONTH_TO_WEEK[Math.min(monthM, MONTH_TO_WEEK.length-1)] || 0; }
+// Returns ISO {week, year} for a JS Date
+function dateToISOWeek(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return { week: Math.ceil((((d - yearStart) / 86400000) + 1) / 7), year: d.getUTCFullYear() };
+}
+// Find the WEEKS array index matching a given ISO {week,year}; -1 if outside range
+function isoToWeekIdx(week, year) { return WEEKS.findIndex(w => w.week===week && w.year===year); }
+// Returns the exact week index for a gate/milestone/launch — checks userGate override first,
+// then explicit weekIdx, else falls back to first week of monthM
+function itemDefaultWeekIdx(r) {
+  if (r.type==='gate' && userGate[r.id] !== undefined) return userGate[r.id].weekIdx;
+  return r.weekIdx !== undefined ? r.weekIdx : monthToWeekIdx(r.monthM||0);
+}
+
+// Extract DD.MM.YYYY date from a label like "GATE 1 — 05.02.2026" and return ISO 'YYYY-MM-DD'
+function extractDateFromLabel(label) {
+  const m = label.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+  if (!m) return null;
+  return `${m[3]}-${m[2]}-${m[1]}`;
+}
+// Format ISO 'YYYY-MM-DD' as 'DD.MM.YYYY'
+function formatDateDMY(iso) {
+  const [y,m,d] = iso.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+function startEditGateDate(id) {
+  const cell = document.getElementById('gatecell_'+id);
+  if(!cell) return;
+  const r = itemMap[id];
+  const current = userGate[id] ? userGate[id].dateStr : extractDateFromLabel(r.label);
+  cell.innerHTML = `<input type="date" class="gate-date-input" id="gateinp_${id}" value="${current||''}"
+    onchange="commitEditGateDate('${id}', this.value)"
+    onblur="cancelEditGateDate('${id}')"
+    onkeydown="if(event.key==='Escape')cancelEditGateDate('${id}')">`;
+  document.getElementById('gateinp_'+id).focus();
+}
+
+function cancelEditGateDate(id) { render(); }
+
+function commitEditGateDate(id, dateStr) {
+  if (!dateStr) { render(); return; }
+  const r = itemMap[id];
+  const dateObj = new Date(dateStr + 'T00:00:00');
+  const iso = dateToISOWeek(dateObj);
+  const weekIdx = isoToWeekIdx(iso.week, iso.year);
+  if (weekIdx === -1) {
+    alert('That date falls outside the current schedule range (Jan 2026 – Dec 2028). Please choose a date within range.');
+    render();
+    return;
+  }
+  userGate[id] = { dateStr, weekIdx };
+  saveToSheet(id, undefined, undefined, undefined, undefined, dateStr);
+  const banner = document.getElementById('impactBanner');
+  banner.textContent = `${r.label.replace(/ — [\d.]+$/,'')} moved to ${formatDateDMY(dateStr)} (W${String(iso.week).padStart(2,'0')}/${iso.year}). Downstream work packages will shift automatically.`;
+  banner.classList.add('show');
+  render();
+}
 
 // week index 0 = W01/2026 (≈ Jan 2026)
 // Dependency map: wpId -> list of wpId that depend on it (must start after it ends)
@@ -264,7 +328,7 @@ const RAW = [
   {id:'2.3.5', type:'wp', index:'2.3.5.', name:'Supplier qualification / audit', owner:'TQ', status:'Open', prio:'B', startM:3, durM:2, deps:['2.3.4']},
   {id:'m_sup', type:'milestone', label:'Supplier pre-selection', monthM:4},
   {id:'2.4.1', type:'wp', index:'2.4.1.', name:'Gate 2 preparation (GD2 Update)', owner:'TDP', status:'Open', prio:'B', startM:4, durM:1, deps:['2.2.8','2.3.1']},
-  {id:'gate2gdx', type:'gate', label:'GATE 2 GDX — 28.05.2026', monthM:4, gdx:true, rapid:false},
+  {id:'gate2gdx', type:'gate', label:'GATE 2 GDX — 23.07.2026', monthM:6, weekIdx:29, gdx:true, rapid:false},
   {id:'2.4.2', type:'wp', index:'2.4.2.', name:'Gate 2 preparation (Rapid SL Update)', owner:'TDP', status:'Open', prio:'B', startM:10, durM:2, deps:['2.3.5']},
   {id:'gate2rapid', type:'gate', label:'GATE 2 Rapid SL — 10.12.2026', monthM:11, gdx:false, rapid:true},
 
@@ -364,10 +428,11 @@ RAW.forEach(r => {
   }
 });
 
-// delta storage: user-set durations, starts, statuses
+// delta storage: user-set durations, starts, statuses, gate dates
 const userDur = {};
 const userStart = {};
 const userStatus = {};
+const userGate = {}; // gateId -> {dateStr:'2026-07-23', weekIdx:29}
 
 function changeStatus(id, sel) {
   const r = itemMap[id];
@@ -382,7 +447,7 @@ function changeStatus(id, sel) {
 function getEffDur(id) { return userDur[id] !== undefined ? userDur[id] : origDur[id]; }
 function getEffStart(id) {
   const r = itemMap[id];
-  if(!r || r.type!=='wp') return r ? monthToWeekIdx(r.monthM||0) : 0;
+  if(!r || r.type!=='wp') return r ? itemDefaultWeekIdx(r) : 0;
   // If user has manually set a start week, use it directly (ignoring deps)
   if(userStart[id] !== undefined) return userStart[id];
   if(!r.deps || r.deps.length===0) return origStart[id];
@@ -391,7 +456,7 @@ function getEffStart(id) {
     const d = itemMap[did];
     if(!d) return;
     let dEnd;
-    if(d.type==='gate'||d.type==='milestone'||d.type==='launch') dEnd = monthToWeekIdx(d.monthM||0)+1;
+    if(d.type==='gate'||d.type==='milestone'||d.type==='launch') dEnd = itemDefaultWeekIdx(d)+1;
     else dEnd = getEffStart(did) + getEffDur(did);
     if(dEnd > maxEnd) maxEnd = dEnd;
   });
@@ -402,7 +467,7 @@ function getEffEnd(id) {
   const r = itemMap[id];
   if(!r) return 0;
   if(r.type==='wp') return getEffStart(id) + getEffDur(id);
-  return monthToWeekIdx(r.monthM||0)+1;
+  return itemDefaultWeekIdx(r)+1;
 }
 
 function isDelayed(id) {
@@ -498,11 +563,23 @@ function render() {
     if(r.type==='stage') {
       leftRow.innerHTML = `<div class="cell" style="width:100%;font-size:12px;color:#fff;font-weight:700;padding-left:10px">${r.label}</div>`;
     } else if(r.type==='milestone') {
-      leftRow.innerHTML = `<div class="cell col-index"></div><div class="cell col-name" style="font-style:italic;font-size:11px;color:#888">◆ ${r.label}</div><div class="cell col-owner"></div><div class="cell col-status"></div><div class="cell col-dur"></div>`;
+      leftRow.innerHTML = `<div class="cell col-index"></div><div class="cell col-name" style="font-style:italic;font-size:11px;color:#888">◆ ${r.label}</div><div class="cell col-owner"></div><div class="cell col-status"></div><div class="cell start-cell"></div><div class="cell col-dur"></div>`;
     } else if(r.type==='gate') {
-      leftRow.innerHTML = `<div class="cell col-index"></div><div class="cell col-name" style="font-size:11px;font-weight:700;color:#1a5a1a">★ ${r.label}</div><div class="cell col-owner"></div><div class="cell col-status"></div><div class="cell col-dur"></div>`;
+      const gateOverride = userGate[r.id];
+      const displayDate = gateOverride ? gateOverride.dateStr : extractDateFromLabel(r.label);
+      const baseLabel = r.label.replace(/ — [\d.]+$/, '');
+      const dateLabel = displayDate ? formatDateDMY(displayDate) : '';
+      const modifiedClass = gateOverride ? ' gate-date-modified' : '';
+      leftRow.innerHTML = `<div class="cell col-index"></div>
+        <div class="cell col-name" style="font-size:11px;font-weight:700;color:#1a5a1a;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+          ★ ${baseLabel} —
+          <span id="gatecell_${r.id}">
+            <span class="gate-date-display${modifiedClass}" onclick="startEditGateDate('${r.id}')" title="Click to change gate date">${dateLabel}</span>
+          </span>
+        </div>
+        <div class="cell col-owner"></div><div class="cell col-status"></div><div class="cell start-cell"></div><div class="cell col-dur"></div>`;
     } else if(r.type==='launch') {
-      leftRow.innerHTML = `<div class="cell col-index"></div><div class="cell col-name" style="font-size:11px;font-weight:700;color:#a04000">🚀 ${r.label}</div><div class="cell col-owner"></div><div class="cell col-status"></div><div class="cell col-dur"></div>`;
+      leftRow.innerHTML = `<div class="cell col-index"></div><div class="cell col-name" style="font-size:11px;font-weight:700;color:#a04000">🚀 ${r.label}</div><div class="cell col-owner"></div><div class="cell col-status"></div><div class="cell start-cell"></div><div class="cell col-dur"></div>`;
     } else {
       // wp
       const delayed = isDelayed(r.id);
@@ -557,11 +634,11 @@ function render() {
           cellContent = `<div class="bar ${barClass}"></div>`;
         }
       } else if(r.type==='milestone') {
-        if(wi===monthToWeekIdx(r.monthM)) cellContent = `<div class="diamond"></div>`;
+        if(wi===itemDefaultWeekIdx(r)) cellContent = `<div class="diamond"></div>`;
       } else if(r.type==='gate') {
-        if(wi===monthToWeekIdx(r.monthM)) cellContent = `<div class="gate-marker"></div>`;
+        if(wi===itemDefaultWeekIdx(r)) cellContent = `<div class="gate-marker"></div>`;
       } else if(r.type==='launch') {
-        if(wi===monthToWeekIdx(r.monthM)) cellContent = `<span class="launch-marker" style="font-size:14px">🚀</span>`;
+        if(wi===itemDefaultWeekIdx(r)) cellContent = `<span class="launch-marker" style="font-size:14px">🚀</span>`;
       }
       cellsHtml += `<div class="mcell ${borderClass}${isToday?' today-col':''}">${cellContent}</div>`;
     });
@@ -652,6 +729,7 @@ function resetAll() {
   Object.keys(userDur).forEach(k => delete userDur[k]);
   Object.keys(userStart).forEach(k => delete userStart[k]);
   Object.keys(userStatus).forEach(k => delete userStatus[k]);
+  Object.keys(userGate).forEach(k => delete userGate[k]);
   RAW.forEach(r => { if(r.type==='wp' && r._origStatus) r.status = r._origStatus; });
   document.getElementById('impactBanner').classList.remove('show');
   render();
@@ -660,11 +738,12 @@ function resetAll() {
 // ── Google Sheets sync ──────────────────────────────────────────
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyFyxuYt5dx23FHFTBePxafb8PTEdWMM78Z28_eWAffBVIuZSB-6boXnoKok5VxXMBz/exec';
 
-function saveToSheet(id, status, duration, startWeek) {
+function saveToSheet(id, status, duration, startWeek, gateWeek, gateDate) {
   const payload = { id };
   if (status !== undefined) payload.status = status;
   if (duration !== undefined) payload.duration = duration;
   if (startWeek !== undefined) payload.startWeek = startWeek;
+  if (gateDate !== undefined) payload.gateDate = gateDate;
   fetch(SHEET_URL, {
     method: 'POST',
     body: JSON.stringify(payload)
@@ -684,6 +763,12 @@ function loadFromSheet() {
         if (data[id].status) { userStatus[id] = data[id].status; r.status = data[id].status; }
         if (data[id].duration) { userDur[id] = parseInt(data[id].duration); }
         if (data[id].startWeek !== undefined && data[id].startWeek !== '') { userStart[id] = parseInt(data[id].startWeek); }
+        if (data[id].gateDate !== undefined && data[id].gateDate !== '' && r.type==='gate') {
+          const dateObj = new Date(data[id].gateDate + 'T00:00:00');
+          const iso = dateToISOWeek(dateObj);
+          const weekIdx = isoToWeekIdx(iso.week, iso.year);
+          if (weekIdx !== -1) userGate[id] = { dateStr: data[id].gateDate, weekIdx };
+        }
       });
       banner.classList.remove('show');
       render();
