@@ -521,7 +521,7 @@ function buildComponentChildren(compId) {
 
 // Build lookup
 const itemMap = {};
-RAW.forEach(r => { itemMap[r.id] = r; if(r.type==='wp') r._origStatus = r.status; });
+RAW.forEach(r => { itemMap[r.id] = r; if(r.type==='wp') { r._origStatus = r.status; r._origOwner = r.owner; r._origMatnr = r.matnr; } });
 
 // Original durations and starts — converted to WEEK indices for the Gantt
 const origDur = {}, origStart = {};
@@ -835,11 +835,15 @@ function commitEditMatnr(id) {
   if(!inp) return;
   const val = inp.value.trim();
   const r = itemMap[id];
-  if (val !== (r.matnr || '')) {
-    r.matnr = val;
+  const prevDisplayed = r.matnr || '';
+  if (val === prevDisplayed) { render(); return; } // nothing actually changed, ignore
+  r.matnr = val;
+  if (val === (r._origMatnr || '')) {
+    delete userMatnr[id]; // back to the true original -> no longer flagged as modified
+  } else {
     userMatnr[id] = val;
-    saveToSheet(id, undefined, undefined, undefined, undefined, undefined, undefined, val);
   }
+  saveToSheet(id, undefined, undefined, undefined, undefined, undefined, undefined, val);
   render();
 }
 
@@ -860,11 +864,15 @@ function commitEditOwner(id) {
   if(!inp) return;
   const val = inp.value.trim();
   const r = itemMap[id];
-  if (val !== (r.owner || '')) {
-    r.owner = val;
+  const prevDisplayed = r.owner || '';
+  if (val === prevDisplayed) { render(); return; } // nothing actually changed, ignore
+  r.owner = val;
+  if (val === (r._origOwner || '')) {
+    delete userOwner[id]; // back to the true original -> no longer flagged as modified
+  } else {
     userOwner[id] = val;
-    saveToSheet(id, undefined, undefined, undefined, undefined, undefined, val);
   }
+  saveToSheet(id, undefined, undefined, undefined, undefined, undefined, val);
   render();
 }
 
@@ -905,7 +913,11 @@ function cancelEditStart(id) { render(); }
 function commitEditStart(id, val) {
   const idx = parseInt(val);
   if(!isNaN(idx) && idx >= 0 && idx < WEEKS.length) {
-    userStart[id] = idx;
+    if (idx === origStart[id]) {
+      delete userStart[id]; // back to the true original -> no longer flagged as modified
+    } else {
+      userStart[id] = idx;
+    }
     saveToSheet(id, undefined, undefined, idx);
     // Show impact
     const w = WEEKS[idx];
@@ -921,7 +933,11 @@ function commitEdit(id) {
   if(!inp) return;
   const val = parseInt(inp.value);
   if(!isNaN(val) && val>=1 && val<=104 && val !== getEffDur(id)) {
-    userDur[id] = val;
+    if (val === origDur[id]) {
+      delete userDur[id]; // back to the true original -> no longer flagged as modified
+    } else {
+      userDur[id] = val;
+    }
     saveToSheet(id, undefined, val);
     showImpact(id, val);
   }
