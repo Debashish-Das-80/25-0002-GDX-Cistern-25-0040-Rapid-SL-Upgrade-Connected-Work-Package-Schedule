@@ -22,9 +22,9 @@
   .container { display: flex; overflow: auto; }
 
   .left-panel { min-width: 460px; max-width: 460px; border-right: 2px solid #ccc; background: #fff; position: sticky; left: 0; z-index: 10; }
-  .left-panel .col-headers { display: flex; border-bottom: 2px solid #ccc; background: #eee; height: 46px; align-items: center; }
+  .left-panel .col-headers { display: flex; border-bottom: 2px solid #ccc; background: #eee; height: 46px; align-items: center; position: sticky; top: 0; z-index: 11; }
   .col-h { font-size: 10px; font-weight: 700; color: #555; text-transform: uppercase; padding: 0 6px; overflow: hidden; white-space: nowrap; }
-  .col-index { width: 52px; }
+  .col-index { width: 76px; }
   .col-name { flex: 1; min-width: 0; }
   .col-owner { width: 48px; text-align: center; }
   .col-status { width: 80px; text-align: center; }
@@ -43,7 +43,7 @@
   .row:hover { background: #f9f9ff; }
 
   .cell { padding: 0 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 12px; height: 28px; display: flex; align-items: center; }
-  .cell.col-name { white-space: normal; overflow: visible; text-overflow: unset; height: auto; min-height: 28px; line-height: 1.3; }
+  .cell.col-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 28px; line-height: 28px; }
 
   .stage-row { background: #1a2a4a !important; color: #fff; font-weight: 700; font-size: 12px; height: 32px; }
   .stage-row .cell { height: 32px; color: #fff; }
@@ -72,6 +72,14 @@
   .start-cell { width: 62px; text-align: center; cursor: pointer; }
   .dur-input { width: 40px; text-align: center; border: 1px solid #aaa; border-radius: 3px; font-size: 11px; padding: 1px 3px; }
   .start-input { width: 52px; text-align: center; border: 1px solid #aaa; border-radius: 3px; font-size: 11px; padding: 1px 3px; }
+  .owner-input { width: 42px; text-align: center; border: 1px solid #aaa; border-radius: 3px; font-size: 11px; padding: 1px 3px; }
+  .owner-cell { cursor: pointer; }
+  .owner-display { border-bottom: 1px dashed #aaa; }
+  .owner-display.modified { color: #0055cc; font-weight: 700; }
+  .matnr-input { width: 64px; text-align: center; border: 1px solid #aaa; border-radius: 3px; font-size: 9px; padding: 1px 2px; }
+  .matnr-cell { cursor: pointer; }
+  .matnr-display { border-bottom: 1px dashed #aaa; }
+  .matnr-display.modified { color: #0055cc; font-weight: 700; }
   .dur-display { font-size: 11px; color: #444; border-bottom: 1px dashed #aaa; min-width: 28px; text-align: center; cursor: pointer; }
   .dur-display.modified { color: #c00; font-weight: 700; }
   .start-display { font-size: 10px; color: #444; border-bottom: 1px dashed #5b8dd9; min-width: 42px; text-align: center; cursor: pointer; white-space: nowrap; }
@@ -111,6 +119,26 @@
   .leg-bar { width: 24px; height: 10px; border-radius: 2px; }
 
   .tooltip { position: fixed; background: #222; color: #fff; padding: 6px 10px; border-radius: 5px; font-size: 11px; pointer-events: none; z-index: 999; display: none; max-width: 220px; line-height: 1.5; }
+
+  /* --- component-detail additions --- */
+  .comp-toggle-row { background: #eef1f8 !important; cursor: pointer; font-weight: 700; color: #1a2a4a; font-size: 11px; }
+  .comp-toggle-row:hover { background: #e2e7f5 !important; }
+  .comp-toggle-icon { display: inline-block; width: 12px; transition: transform 0.15s; }
+  .comp-toggle-icon.open { transform: rotate(90deg); }
+  .component-row .cell.col-name { font-size: 10px; color: #333; padding-left: 14px; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; display: block; height: 28px; line-height: 28px; }
+  .component-row .cell.col-index { font-size: 9px; color: #999; overflow: visible; text-overflow: unset; white-space: nowrap; }
+  .component-child-row .cell.col-name { font-size: 10px; color: #555; padding-left: 32px; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; display: block; height: 28px; line-height: 28px; }
+  .component-child-row .cell.col-index { font-size: 8px; color: #aaa; }
+  .comp-wp-toggle { cursor: pointer; font-size: 8px; color: #1a4a8a; margin-right: 4px; display: inline-block; width: 8px; }
+  .comp-proc-tag { font-size: 9px; padding: 0 4px; border-radius: 3px; font-weight: 700; }
+  .comp-proc-E { background: #dbe8ff; color: #1a4a8a; }
+  .comp-proc-F { background: #eee; color: #666; }
+  .comp-proc-unknown { background: #fde3cf; color: #a04000; }
+  .comp-remark { font-size: 8px; color: #999; margin-left: 3px; }
+  .tri-marker { width: 7px; height: 7px; transform: rotate(45deg); background: #a04000; border: 1px solid #6b2c00; position: absolute; }
+  .tri-label { position: absolute; font-size: 7px; color: #a04000; top: -9px; white-space: nowrap; }
+  .bar-component { background: #7c9fd6 !important; }
+  .bar-tbd { background: repeating-linear-gradient(45deg, #d8d8d8, #d8d8d8 4px, #ececec 4px, #ececec 8px) !important; border: 1px dashed #999; }
 </style>
 </head>
 <body>
@@ -118,7 +146,7 @@
 <div class="header">
   <div>
     <div class="h1">25-0002 GD2 Update &nbsp;|&nbsp; 25-0040 Rapid SL Update — Connected Work Package Schedule</div>
-    <div class="sub">Interactive mode · Calendar weeks (ISO) · click any duration or start week to edit — downstream work packages update automatically</div>
+    <div class="sub">Interactive mode · Calendar weeks (ISO) · click any duration or start week to edit — downstream work packages update automatically · click ▶ on a component to reveal its own 4.1.1–4.5.1 work packages</div>
   </div>
 </div>
 
@@ -144,6 +172,7 @@
   </label>
   <label>Search: <input type="text" id="searchBox" placeholder="e.g. design, supplier…" style="width:160px"></label>
   <button class="reset-btn" onclick="resetAll()">Reset all durations</button>
+  <button class="reset-btn" style="background:#a04000" onclick="toggleComponents()" id="compToggleBtn">Show components</button>
   <div class="impact-banner" id="impactBanner"></div>
 </div>
 
@@ -178,6 +207,9 @@
   <div class="leg-item"><div style="width:12px;height:12px;transform:rotate(45deg);border:2px solid #555;background:#fff;display:inline-block"></div> &nbsp;Internal milestone</div>
   <div class="leg-item"><div style="width:12px;height:12px;transform:rotate(45deg);background:#1a7a1a;display:inline-block"></div> &nbsp;Gate</div>
   <div class="leg-item">🚀 Launch</div>
+  <div class="leg-item"><div class="leg-bar" style="background:#7c9fd6"></div> Component procurement/tooling lead time</div>
+  <div class="leg-item"><div style="width:9px;height:9px;transform:rotate(45deg);background:#a04000;border:1px solid #6b2c00;display:inline-block"></div> &nbsp;Tool trial (T1/T2/T3)</div>
+  <div class="leg-item"><div class="leg-bar" style="background:repeating-linear-gradient(45deg,#d8d8d8,#d8d8d8 4px,#ececec 4px,#ececec 8px);border:1px dashed #999"></div> Component — no date yet, placeholder (click to set)</div>
 </div>
 
 <script>
@@ -368,35 +400,50 @@ const RAW = [
   {id:'gate3rapid', type:'gate', label:'GATE 3 Rapid SL — 29.04.2027', monthM:15, gdx:false, rapid:true},
 
   {id:'s4', type:'stage', label:'STAGE 4 — Pilot & Qualification'},
-  {id:'4.1.1', type:'wp', index:'4.1.1.', name:'Documentation for pilot', owner:'RD', status:'Open', prio:'', startM:12, durM:2, deps:['gate3gdx']},
-  {id:'4.1.2', type:'wp', index:'4.1.2.', name:'Set all SKU to Status 1', owner:'PM', status:'Open', prio:'C', startM:12, durM:1, deps:['gate3gdx']},
-  {id:'4.1.3', type:'wp', index:'4.1.3.', name:'Demand planning (APO)', owner:'SCM', status:'Open', prio:'A', startM:12, durM:2, deps:['gate3gdx']},
-  {id:'4.2.1', type:'wp', index:'4.2.1.', name:'Tool & ISIR ordering', owner:'TP', status:'Open', prio:'A', startM:12, durM:1, deps:['gate3gdx']},
-  {id:'4.2.2', type:'wp', index:'4.2.2.', name:'Control plan critical components', owner:'TI', status:'Open', prio:'B', startM:12, durM:2, deps:['gate3gdx']},
   {id:'m_tool', type:'milestone', label:'Tool orders', monthM:12},
-  {id:'4.2.3', type:'wp', index:'4.2.3.', name:'Tool manufacturing', owner:'TI;TP', status:'Open', prio:'C', startM:13, durM:3, deps:['4.2.1']},
-  {id:'4.2.4', type:'wp', index:'4.2.4.', name:'Tool setup & optimization', owner:'TI;TP', status:'Open', prio:'C', startM:16, durM:2, deps:['4.2.3']},
-  {id:'4.2.5', type:'wp', index:'4.2.5.', name:'ISIR sample testing', owner:'TI', status:'Open', prio:'A', startM:17, durM:2, deps:['4.2.4']},
-  {id:'4.2.6', type:'wp', index:'4.2.6.', name:'ISIR sample rework', owner:'TI;TP', status:'Open', prio:'B', startM:18, durM:1, deps:['4.2.5']},
+  {id:'comptoggle', type:'comptoggle', label:'Component Tooling Detail (from Zeitschiene GDX/SL Update)', count:38},
+    {id:'c01', type:'wp', isComponent:true, index:'', name:'Spülkasten Unterteil', matnr:'4378199990', owner:'E', remark:'', status:'Open', prio:'', weekStart:32, weekDur:24, deps:[], tmarkers:[{label:'T1',weekIdx:56},{label:'T2',weekIdx:60},{label:'T3',weekIdx:64}]},
+    {id:'c02', type:'wp', isComponent:true, index:'', name:'Spülkasten Deckel', matnr:'4378209990', owner:'E', remark:'', status:'Open', prio:'', weekStart:33, weekDur:23, deps:[], tmarkers:[{label:'T1',weekIdx:56},{label:'T2',weekIdx:60},{label:'T3',weekIdx:64}]},
+    {id:'c03', type:'wp', isComponent:true, index:'', name:'Traverse', matnr:'4378619990', owner:'E', remark:'', status:'Open', prio:'', weekStart:50, weekDur:12, deps:[], tmarkers:[{label:'T1',weekIdx:62},{label:'T2',weekIdx:65}]},
+    {id:'c04', type:'wp', isComponent:true, index:'', name:'Füllventilhalter', matnr:'437770ED00', owner:'E', remark:'', status:'Open', prio:'', weekStart:50, weekDur:12, deps:[], tmarkers:[{label:'T1',weekIdx:62},{label:'T2',weekIdx:65},{label:'T3',weekIdx:67}]},
+    {id:'c05', type:'wp', isComponent:true, tbd:true, index:'', name:'Isolierung', matnr:'4389629990', owner:'F', remark:'', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c06', type:'wp', isComponent:true, index:'', name:'Revisionsplatte', matnr:'437893ED00', owner:'E', remark:'', status:'Open', prio:'', weekStart:50, weekDur:16, deps:[], tmarkers:[{label:'T1',weekIdx:66},{label:'T2',weekIdx:69},{label:'T3',weekIdx:71}]},
+    {id:'c07', type:'wp', isComponent:true, tbd:true, index:'', name:'Transportsicherung AV1', matnr:'437901DF00', owner:'E', remark:'in Klärung', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c08', type:'wp', isComponent:true, tbd:true, index:'', name:'Lippendichtung', matnr:'493285031', owner:'F', remark:'liegt vor', status:'Done', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c09', type:'wp', isComponent:true, index:'', name:'Halter Solo (optimiert)', matnr:'491611031', owner:'E', remark:'', status:'Open', prio:'', weekStart:50, weekDur:12, deps:[], tmarkers:[{label:'T1',weekIdx:62},{label:'T2',weekIdx:65}]},
+    {id:'c10', type:'wp', isComponent:true, tbd:true, index:'', name:'Blech für Solo Halterung', matnr:'437779990', owner:'F', remark:'', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c11', type:'wp', isComponent:true, index:'', name:'Rohr Ø45/225 Zulaufrohr', matnr:'4370749990', owner:'E', remark:'', status:'Open', prio:'', weekStart:49, weekDur:16, deps:['gate3gdx']},
+    {id:'c12', type:'wp', isComponent:true, index:'', name:'Rohr Ø90 L=180 (Ablauf/Leuchtturm)', matnr:'4370859990', owner:'E', remark:'', status:'Open', prio:'', weekStart:49, weekDur:16, deps:['gate3gdx']},
+    {id:'c13', type:'wp', isComponent:true, index:'', name:'Stehbolzen', matnr:'12.07.0621', owner:'E', remark:'Termin wird geändert', status:'Open', prio:'', weekStart:37, weekDur:16, deps:[], tmarkers:[{label:'T1',weekIdx:53}]},
+    {id:'c14', type:'wp', isComponent:true, tbd:true, index:'', name:'Muffe', matnr:'22.02.1021', owner:'E', remark:'in Klärung', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c15', type:'wp', isComponent:true, index:'', name:'Revisionsschacht - Solo bedruckt', matnr:'4378629990', owner:'E', remark:'', status:'Open', prio:'', weekStart:50, weekDur:18, deps:[], tmarkers:[{label:'T1',weekIdx:68},{label:'T2',weekIdx:71},{label:'T3',weekIdx:73}]},
+    {id:'c16', type:'wp', isComponent:true, index:'', name:'Spülrohr GDX Element', matnr:'4373249990', owner:'E', remark:'', status:'Open', prio:'', weekStart:50, weekDur:17, deps:[], tmarkers:[{label:'T1',weekIdx:67},{label:'T2',weekIdx:70},{label:'T3',weekIdx:72}]},
+    {id:'c17', type:'wp', isComponent:true, index:'', name:'Revisionsschacht Rapid GDX - 60mm hoch', matnr:'4377789990', owner:'E', remark:'', status:'Open', prio:'', weekStart:50, weekDur:18, deps:[], tmarkers:[{label:'T1',weekIdx:68},{label:'T2',weekIdx:71},{label:'T3',weekIdx:73}]},
+    {id:'c18', type:'wp', isComponent:true, tbd:true, index:'', name:'Schutzschlauch NW22', matnr:'4397589990', owner:'F', remark:'', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c19', type:'wp', isComponent:true, tbd:true, index:'', name:'Pumpenhalterung', matnr:'', owner:'?', remark:'', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c20', type:'wp', isComponent:true, tbd:true, index:'', name:'Skandinavien Halter', matnr:'', owner:'?', remark:'', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c21', type:'wp', isComponent:true, tbd:true, index:'', name:'VM Rahmen Rapid SL Plus', matnr:'435067ED0G', owner:'F', remark:'Dopro / Wecubex', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c22', type:'wp', isComponent:true, tbd:true, index:'', name:'VM Rahmen Rapid GDx (SLX)', matnr:'435941ED0G', owner:'F', remark:'Dopro / Wecubex', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c23', type:'wp', isComponent:true, tbd:true, index:'', name:'VM Rahmen Rapid GDx (SLX) - F 62/20', matnr:'437248ED0G', owner:'F', remark:'Dopro / Wecubex', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c24', type:'wp', isComponent:true, tbd:true, index:'', name:'VM Rahmen Rapid GDx (SLX) - ME 62/20', matnr:'437383ED0G', owner:'F', remark:'Dopro / Wecubex', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c25', type:'wp', isComponent:true, tbd:true, index:'', name:'VM Rahmen Rapid GDx (SLX) - F 70/25 (handicap)', matnr:'437257ED0G', owner:'F', remark:'Dopro / Wecubex', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c26', type:'wp', isComponent:true, tbd:true, index:'', name:'VM Rahmen Rapid GDx (SLX) - F 70/25-DE (handicap)', matnr:'437235ED0G', owner:'F', remark:'Dopro / Wecubex', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c27', type:'wp', isComponent:true, tbd:true, index:'', name:'Riegel, Ablauf-Rohrhalter', matnr:'4398549990', owner:'E', remark:'in Klärung', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c28', type:'wp', isComponent:true, tbd:true, index:'', name:'Sockel, Ablauf-Rohrhalter', matnr:'4397809990', owner:'E', remark:'in Klärung', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c29', type:'wp', isComponent:true, index:'', name:'Drehring', matnr:'4271619990', owner:'?', remark:'Plant vs. HAWA decision open', status:'Open', prio:'', weekStart:62, weekDur:5, deps:[], tmarkers:[{label:'T1',weekIdx:62},{label:'T2',weekIdx:64},{label:'T3',weekIdx:66}]},
+    {id:'c30', type:'wp', isComponent:true, index:'', name:'Klemmteil', matnr:'4271069990', owner:'?', remark:'Plant vs. HAWA decision open', status:'Open', prio:'', weekStart:60, weekDur:5, deps:[], tmarkers:[{label:'T1',weekIdx:60},{label:'T2',weekIdx:62},{label:'T3',weekIdx:64}]},
+    {id:'c31', type:'wp', isComponent:true, index:'', name:'Spannring', matnr:'4271629990', owner:'?', remark:'Plant vs. HAWA decision open', status:'Open', prio:'', weekStart:60, weekDur:5, deps:[], tmarkers:[{label:'T1',weekIdx:60},{label:'T2',weekIdx:62},{label:'T3',weekIdx:64}]},
+    {id:'c32', type:'wp', isComponent:true, index:'', name:'Klammer', matnr:'4217869990', owner:'?', remark:'Plant vs. HAWA decision open', status:'Open', prio:'', weekStart:60, weekDur:5, deps:[], tmarkers:[{label:'T1',weekIdx:60},{label:'T2',weekIdx:62},{label:'T3',weekIdx:64}]},
+    {id:'c33', type:'wp', isComponent:true, index:'', name:'Sicherungsring', matnr:'4217829990', owner:'?', remark:'Plant vs. HAWA decision open', status:'Open', prio:'', weekStart:60, weekDur:5, deps:[], tmarkers:[{label:'T1',weekIdx:60},{label:'T2',weekIdx:62},{label:'T3',weekIdx:64}]},
+    {id:'c34', type:'wp', isComponent:true, tbd:true, index:'', name:'Kugelkopfschraube', matnr:'4217839990', owner:'F', remark:'Plant vs. HAWA decision open', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c35', type:'wp', isComponent:true, tbd:true, index:'', name:'Wandbefestigung', matnr:'4217689990', owner:'F', remark:'Plant vs. HAWA decision open', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c36', type:'wp', isComponent:true, tbd:true, index:'', name:'Gewindehülse', matnr:'4217859990', owner:'F', remark:'Plant vs. HAWA decision open', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c37', type:'wp', isComponent:true, tbd:true, index:'', name:'Zugentlastung, NYM 1,5 3x', matnr:'', owner:'', remark:'', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
+    {id:'c38', type:'wp', isComponent:true, tbd:true, index:'', name:'Kabelendkappe', matnr:'', owner:'', remark:'', status:'Open', prio:'', weekStart:49, weekDur:1, deps:['gate3gdx']},
   {id:'m_isir', type:'milestone', label:'ISIR samples released', monthM:19},
-  {id:'4.3.1', type:'wp', index:'4.3.1.', name:'Ensure production quality', owner:'TQ', status:'Open', prio:'A', startM:13, durM:3, deps:['gate3gdx']},
-  {id:'4.3.2', type:'wp', index:'4.3.2.', name:'Prepare production in plants', owner:'TI', status:'Open', prio:'A', startM:13, durM:3, deps:['gate3gdx']},
-  {id:'4.3.3', type:'wp', index:'4.3.3.', name:'Production of pilot components', owner:'TI', status:'Open', prio:'C', startM:15, durM:2, deps:['4.2.3']},
-  {id:'4.3.4', type:'wp', index:'4.3.4.', name:'Pilot production', owner:'TI', status:'Open', prio:'A', startM:16, durM:2, deps:['4.3.3']},
-  {id:'4.3.5', type:'wp', index:'4.3.5.', name:'Pilot production loop', owner:'TI', status:'Open', prio:'C', startM:17, durM:1, deps:['4.3.4']},
-  {id:'4.3.6', type:'wp', index:'4.3.6.', name:'Launch validation / availability start', owner:'TI', status:'Open', prio:'A', startM:18, durM:2, deps:['4.3.5']},
-  {id:'4.3.7', type:'wp', index:'4.3.7.', name:'Order serial components', owner:'TI', status:'Open', prio:'C', startM:17, durM:2, deps:['gate3gdx']},
-  {id:'4.3.8', type:'wp', index:'4.3.8.', name:'Components for ramp-up', owner:'TI', status:'Open', prio:'C', startM:18, durM:2, deps:['4.3.7']},
-  {id:'4.4.1', type:'wp', index:'4.4.1.', name:'Qualification of pilot', owner:'TDE', status:'Open', prio:'A', startM:17, durM:3, deps:['4.2.5']},
-  {id:'4.4.2', type:'wp', index:'4.4.2.', name:'Release of pilot', owner:'TQ', status:'Open', prio:'', startM:18, durM:2, deps:['4.4.1']},
-  {id:'4.4.3', type:'wp', index:'4.4.3.', name:'Design quality release (DQR)', owner:'Design', status:'Open', prio:'', startM:18, durM:2, deps:['4.4.1']},
-  {id:'4.4.4', type:'wp', index:'4.4.4.', name:'Field / acceptance test', owner:'TQ', status:'Open', prio:'A', startM:18, durM:2, deps:['4.4.1']},
-  {id:'4.4.5', type:'wp', index:'4.4.5.', name:'Approvals', owner:'TDA', status:'Open', prio:'A', startM:18, durM:2, deps:['4.4.1']},
-  {id:'4.4.6', type:'wp', index:'4.4.6.', name:'FMEA re-evaluation', owner:'TQ', status:'Open', prio:'A', startM:18, durM:2, deps:['4.4.1']},
   {id:'m_qual', type:'milestone', label:'Qualification achieved', monthM:19},
-  {id:'4.5.1', type:'wp', index:'4.5.1.', name:'Packaging', owner:'PM', status:'Open', prio:'', startM:17, durM:3, deps:['gate3gdx']},
   {id:'4.5.2', type:'wp', index:'4.5.2.', name:'Final communication material', owner:'PM', status:'Open', prio:'A', startM:17, durM:3, deps:['gate3gdx']},
-  {id:'4.6.1', type:'wp', index:'4.6.1.', name:'Gate 4 preparation (GD2 Update)', owner:'TDP', status:'Open', prio:'B', startM:18, durM:2, deps:['4.4.4','4.3.6']},
+  {id:'4.6.1', type:'wp', index:'4.6.1.', name:'Gate 4 preparation (GD2 Update)', owner:'TDP', status:'Open', prio:'B', startM:18, durM:2, deps:['gate3gdx']},
   {id:'gate4gdx', type:'gate', label:'GATE 4 GDX — 24.06.2027', monthM:17, gdx:true, rapid:false},
   {id:'4.6.2', type:'wp', index:'4.6.2.', name:'Gate 4 preparation (Rapid SL Update)', owner:'TDP', status:'Open', prio:'B', startM:18, durM:3, deps:['gate3rapid']},
   {id:'gate4rapid', type:'gate', label:'GATE 4 Rapid SL — 02.09.2027', monthM:20, gdx:false, rapid:true},
@@ -415,6 +462,63 @@ const RAW = [
   {id:'5.2.5', type:'wp', index:'5.2.5.', name:'Launch performance monitoring', owner:'PM', status:'Open', prio:'B', startM:19, durM:2, deps:['launch_gdx']},
 ];
 
+// ── Repeat stage-4 work packages (4.1.1 – 4.5.1) under every component ──────
+// Template mirrors the master Stage-4 WPs; internal deps are remapped to the
+// per-component sibling id, external deps (gate3gdx) stay shared so every
+// component's mini-schedule still cascades off the real Gate 3 date.
+const STAGE4_WP_TEMPLATE = [
+  {id:'4.1.1', name:'Documentation for pilot', owner:'RD', startM:12, durM:2, deps:['gate3gdx']},
+  {id:'4.1.2', name:'Set all SKU to Status 1', owner:'PM', startM:12, durM:1, deps:['gate3gdx']},
+  {id:'4.1.3', name:'Demand planning (APO)', owner:'SCM', startM:12, durM:2, deps:['gate3gdx']},
+  {id:'4.2.1', name:'Tool & ISIR ordering', owner:'TP', startM:12, durM:1, deps:['gate3gdx']},
+  {id:'4.2.2', name:'Control plan critical components', owner:'TI', startM:12, durM:2, deps:['gate3gdx']},
+  {id:'4.2.3', name:'Tool manufacturing', owner:'TI;TP', startM:13, durM:3, deps:['4.2.1']},
+  {id:'4.2.4', name:'Tool setup & optimization', owner:'TI;TP', startM:16, durM:2, deps:['4.2.3']},
+  {id:'4.2.5', name:'ISIR sample testing', owner:'TI', startM:17, durM:2, deps:['4.2.4']},
+  {id:'4.2.6', name:'ISIR sample rework', owner:'TI;TP', startM:18, durM:1, deps:['4.2.5']},
+  {id:'4.3.1', name:'Ensure production quality', owner:'TQ', startM:13, durM:3, deps:['gate3gdx']},
+  {id:'4.3.2', name:'Prepare production in plants', owner:'TI', startM:13, durM:3, deps:['gate3gdx']},
+  {id:'4.3.3', name:'Production of pilot components', owner:'TI', startM:15, durM:2, deps:['4.2.3']},
+  {id:'4.3.4', name:'Pilot production', owner:'TI', startM:16, durM:2, deps:['4.3.3']},
+  {id:'4.3.5', name:'Pilot production loop', owner:'TI', startM:17, durM:1, deps:['4.3.4']},
+  {id:'4.3.6', name:'Launch validation / availability start', owner:'TI', startM:18, durM:2, deps:['4.3.5']},
+  {id:'4.3.7', name:'Order serial components', owner:'TI', startM:17, durM:2, deps:['gate3gdx']},
+  {id:'4.3.8', name:'Components for ramp-up', owner:'TI', startM:18, durM:2, deps:['4.3.7']},
+  {id:'4.4.1', name:'Qualification of pilot', owner:'TDE', startM:17, durM:3, deps:['4.2.5']},
+  {id:'4.4.2', name:'Release of pilot', owner:'TQ', startM:18, durM:2, deps:['4.4.1']},
+  {id:'4.4.3', name:'Design quality release (DQR)', owner:'Design', startM:18, durM:2, deps:['4.4.1']},
+  {id:'4.4.4', name:'Field / acceptance test', owner:'TQ', startM:18, durM:2, deps:['4.4.1']},
+  {id:'4.4.5', name:'Approvals', owner:'TDA', startM:18, durM:2, deps:['4.4.1']},
+  {id:'4.4.6', name:'FMEA re-evaluation', owner:'TQ', startM:18, durM:2, deps:['4.4.1']},
+  {id:'4.5.1', name:'Packaging', owner:'PM', startM:17, durM:3, deps:['gate3gdx']},
+];
+const STAGE4_TEMPLATE_IDS = new Set(STAGE4_WP_TEMPLATE.map(t => t.id));
+
+function buildComponentChildren(compId) {
+  return STAGE4_WP_TEMPLATE.map(t => ({
+    id: `${compId}_${t.id}`,
+    type: 'wp',
+    compChild: true,
+    parentComponent: compId,
+    index: t.id + '.',
+    name: t.name,
+    owner: t.owner,
+    status: 'Open',
+    prio: '',
+    startM: t.startM,
+    durM: t.durM,
+    deps: t.deps.map(d => STAGE4_TEMPLATE_IDS.has(d) ? `${compId}_${d}` : d)
+  }));
+}
+
+(function expandComponentChildren() {
+  const componentIds = RAW.filter(r => r.isComponent).map(r => r.id);
+  componentIds.forEach(compId => {
+    const pos = RAW.findIndex(r => r.id === compId);
+    RAW.splice(pos + 1, 0, ...buildComponentChildren(compId));
+  });
+})();
+
 // Build lookup
 const itemMap = {};
 RAW.forEach(r => { itemMap[r.id] = r; if(r.type==='wp') r._origStatus = r.status; });
@@ -423,8 +527,8 @@ RAW.forEach(r => { itemMap[r.id] = r; if(r.type==='wp') r._origStatus = r.status
 const origDur = {}, origStart = {};
 RAW.forEach(r => {
   if(r.type==='wp'){
-    origStart[r.id] = monthStartToWeek(r.startM);
-    origDur[r.id]   = monthDurToWeeks(r.startM, r.durM);
+    origStart[r.id] = (r.weekStart!==undefined) ? r.weekStart : monthStartToWeek(r.startM);
+    origDur[r.id]   = (r.weekDur!==undefined)   ? r.weekDur   : monthDurToWeeks(r.startM, r.durM);
   }
 });
 
@@ -433,6 +537,21 @@ const userDur = {};
 const userStart = {};
 const userStatus = {};
 const userGate = {}; // gateId -> {dateStr:'2026-07-23', weekIdx:29}
+const userOwner = {};
+const userMatnr = {};
+let componentsExpanded = false;
+let expandedComponents = {};
+
+function toggleComponents() {
+  componentsExpanded = !componentsExpanded;
+  document.getElementById('compToggleBtn').textContent = componentsExpanded ? 'Hide components' : 'Show components';
+  render();
+}
+
+function toggleComponentWPs(id) {
+  expandedComponents[id] = !expandedComponents[id];
+  render();
+}
 
 function changeStatus(id, sel) {
   const r = itemMap[id];
@@ -537,6 +656,15 @@ function buildHeaders() {
 let filterStatus = 'all', filterStage = 'all', searchTerm = '';
 
 function matchesFilter(r) {
+  if(r.type==='comptoggle' || r.isComponent || r.compChild) {
+    if(filterStage!=='all' && filterStage!=='4') return false;
+    if(r.type==='comptoggle') return true;
+    if(!componentsExpanded) return false;
+    if(r.compChild && !expandedComponents[r.parentComponent]) return false;
+    if(filterStatus!=='all' && r.status!==filterStatus) return false;
+    if(searchTerm && !r.name.toLowerCase().includes(searchTerm)) return false;
+    return true;
+  }
   if(r.type==='stage') return filterStage==='all' || r.id==='s'+filterStage;
   if(r.type==='gate'||r.type==='milestone'||r.type==='launch') return true;
   if(r.type!=='wp') return true;
@@ -557,29 +685,63 @@ function render() {
     if(!matchesFilter(r)) return;
     // Left row
     const leftRow = document.createElement('div');
-    leftRow.className = 'row' + (r.type==='stage'?' stage-row':r.type==='milestone'?' milestone-row':r.type==='gate'?' gate-row':r.type==='launch'?' launch-row':'');
+    leftRow.className = 'row' + (r.type==='stage'?' stage-row':r.type==='milestone'?' milestone-row':r.type==='gate'?' gate-row':r.type==='launch'?' launch-row':r.type==='comptoggle'?' comp-toggle-row':r.isComponent?' component-row':r.compChild?' component-child-row':'');
     leftRow.style.height = r.type==='stage'?'32px':'28px';
 
     if(r.type==='stage') {
       leftRow.innerHTML = `<div class="cell" style="width:100%;font-size:12px;color:#fff;font-weight:700;padding-left:10px">${r.label}</div>`;
+    } else if(r.type==='comptoggle') {
+      leftRow.onclick = toggleComponents;
+      leftRow.innerHTML = `<div class="cell" style="width:100%;padding-left:10px"><span class="comp-toggle-icon${componentsExpanded?' open':''}">▶</span> ${r.label} (${r.count} items) — click to ${componentsExpanded?'collapse':'expand'}</div>`;
     } else if(r.type==='milestone') {
-      leftRow.innerHTML = `<div class="cell col-index"></div><div class="cell col-name" style="font-style:italic;font-size:11px;color:#888">◆ ${r.label}</div><div class="cell col-owner"></div><div class="cell col-status"></div><div class="cell start-cell"></div><div class="cell col-dur"></div>`;
+      leftRow.innerHTML = `<div class="cell" style="width:100%;padding-left:6px;font-style:italic;font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.label}">◆ ${r.label}</div>`;
     } else if(r.type==='gate') {
       const gateOverride = userGate[r.id];
       const displayDate = gateOverride ? gateOverride.dateStr : extractDateFromLabel(r.label);
       const baseLabel = r.label.replace(/ — [\d.]+$/, '');
       const dateLabel = displayDate ? formatDateDMY(displayDate) : '';
       const modifiedClass = gateOverride ? ' gate-date-modified' : '';
-      leftRow.innerHTML = `<div class="cell col-index"></div>
-        <div class="cell col-name" style="font-size:11px;font-weight:700;color:#1a5a1a;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+      leftRow.innerHTML = `
+        <div class="cell" style="width:100%;padding-left:6px;font-size:11px;font-weight:700;color:#1a5a1a;display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden" title="${baseLabel} — ${dateLabel}">
           ★ ${baseLabel} —
           <span id="gatecell_${r.id}">
             <span class="gate-date-display${modifiedClass}" onclick="startEditGateDate('${r.id}')" title="Click to change gate date">${dateLabel}</span>
           </span>
-        </div>
-        <div class="cell col-owner"></div><div class="cell col-status"></div><div class="cell start-cell"></div><div class="cell col-dur"></div>`;
+        </div>`;
     } else if(r.type==='launch') {
-      leftRow.innerHTML = `<div class="cell col-index"></div><div class="cell col-name" style="font-size:11px;font-weight:700;color:#a04000">🚀 ${r.label}</div><div class="cell col-owner"></div><div class="cell col-status"></div><div class="cell start-cell"></div><div class="cell col-dur"></div>`;
+      leftRow.innerHTML = `<div class="cell" style="width:100%;padding-left:6px;font-size:11px;font-weight:700;color:#a04000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.label}">🚀 ${r.label}</div>`;
+    } else if(r.isComponent) {
+      const dur = getEffDur(r.id);
+      const effStart = getEffStart(r.id);
+      const startWeek = WEEKS[effStart];
+      const startLabel = startWeek ? `W${String(startWeek.week).padStart(2,'0')}/${startWeek.year}` : '—';
+      const modified = userDur[r.id]!==undefined;
+      const startModified = userStart[r.id]!==undefined;
+      const effStatus = userStatus[r.id] !== undefined ? userStatus[r.id] : r.status;
+      const sbClass = effStatus==='Done'?'s-done':effStatus==='In Progress'?'s-inprogress':effStatus==='Not Relevant'?'s-notrelevant':'s-open';
+      const procClass = r.owner==='F' ? 'comp-proc-F' : (r.owner==='E' ? 'comp-proc-E' : 'comp-proc-unknown');
+      const fullTitle = r.remark ? `${r.name} — ${r.remark}` : r.name;
+      const wpToggle = `<span class="comp-wp-toggle" onclick="event.stopPropagation();toggleComponentWPs('${r.id}')" title="Show/hide this component's work packages">${expandedComponents[r.id]?'▼':'▶'}</span>`;
+      leftRow.innerHTML = `
+        <div class="cell col-index matnr-cell" id="matnrcell_${r.id}" onclick="startEditMatnr('${r.id}')" title="Click to edit component number" style="font-size:9px;color:#999">
+          <span class="matnr-display ${userMatnr[r.id]!==undefined?'modified':''}">${r.matnr||'—'}</span>
+        </div>
+        <div class="cell col-name" title="${fullTitle}">${wpToggle}${r.name}${r.remark?` <span class="comp-remark">${r.remark}</span>`:''}</div>
+        <div class="cell col-owner owner-cell" id="ownercell_${r.id}" onclick="startEditOwner('${r.id}')" title="Click to edit owner/procurement type">
+          <span class="comp-proc-tag ${procClass} owner-display ${userOwner[r.id]!==undefined?'modified':''}">${r.owner||'?'}</span>
+        </div>
+        <div class="cell col-status"><select class="status-select ${sbClass}" onchange="changeStatus('${r.id}', this)">
+          <option value="Open" ${effStatus==='Open'?'selected':''}>Open</option>
+          <option value="In Progress" ${effStatus==='In Progress'?'selected':''}>In Progress</option>
+          <option value="Done" ${effStatus==='Done'?'selected':''}>Done</option>
+          <option value="Not Relevant" ${effStatus==='Not Relevant'?'selected':''}>Not Relevant</option>
+        </select></div>
+        <div class="cell start-cell" id="startcell_${r.id}">
+          <span class="start-display ${startModified?'modified':''}" onclick="startEditStart('${r.id}')" title="Click to change start week">${startLabel}</span>
+        </div>
+        <div class="cell col-dur dur-cell" id="durcell_${r.id}">
+          <span class="dur-display ${modified?'modified':''}" onclick="startEdit('${r.id}')" title="Click to change duration">${dur}w</span>
+        </div>`;
     } else {
       // wp
       const delayed = isDelayed(r.id);
@@ -595,7 +757,9 @@ function render() {
       leftRow.innerHTML = `
         <div class="cell col-index" style="font-size:10px;color:#888">${r.index||''}</div>
         <div class="cell col-name" title="${r.name}" style="${nameStyle}">${r.name}</div>
-        <div class="cell col-owner" style="text-align:center;font-size:10px;color:#666">${r.owner||''}</div>
+        <div class="cell col-owner owner-cell" id="ownercell_${r.id}" onclick="startEditOwner('${r.id}')" title="Click to edit owner" style="text-align:center;font-size:10px;color:#666">
+          <span class="owner-display ${userOwner[r.id]!==undefined?'modified':''}">${r.owner||'—'}</span>
+        </div>
         <div class="cell col-status"><select class="status-select ${sbClass}" onchange="changeStatus('${r.id}', this)">
           <option value="Open" ${effStatus==='Open'?'selected':''}>Open</option>
           <option value="In Progress" ${effStatus==='In Progress'?'selected':''}>In Progress</option>
@@ -615,6 +779,7 @@ function render() {
     const gRow = document.createElement('div');
     gRow.className = 'gantt-row' + (r.type==='stage'?' gantt-stage-row':r.type==='milestone'?' gantt-milestone-row':r.type==='gate'?' gantt-gate-row':r.type==='launch'?' gantt-launch-row':'');
     gRow.style.height = r.type==='stage'?'32px':'28px';
+    gRow.style.position = 'relative';
 
     let cellsHtml = '';
     WEEKS.forEach((w, wi) => {
@@ -630,8 +795,14 @@ function render() {
         if(wi>=s && wi<e) {
           const delayed = isDelayed(r.id);
           const effSt = userStatus[r.id] !== undefined ? userStatus[r.id] : r.status;
-          const barClass = effSt==='Done' ? 'bar-done' : effSt==='In Progress' ? 'bar-inprogress' : effSt==='Not Relevant' ? 'bar-notrelevant' : (delayed ? 'bar-delayed' : 'bar-open');
+          let barClass = effSt==='Done' ? 'bar-done' : effSt==='In Progress' ? 'bar-inprogress' : effSt==='Not Relevant' ? 'bar-notrelevant' : (delayed ? 'bar-delayed' : 'bar-open');
+          if(r.isComponent && effSt==='Open' && !delayed) barClass = r.tbd ? 'bar-tbd' : 'bar-component';
           cellContent = `<div class="bar ${barClass}"></div>`;
+        }
+        if(r.tmarkers) {
+          r.tmarkers.forEach(tm => {
+            if(wi===tm.weekIdx) cellContent += `<div class="tri-marker" title="${tm.label}"><span class="tri-label">${tm.label}</span></div>`;
+          });
         }
       } else if(r.type==='milestone') {
         if(wi===itemDefaultWeekIdx(r)) cellContent = `<div class="diamond"></div>`;
@@ -645,6 +816,50 @@ function render() {
     gRow.innerHTML = cellsHtml;
     gr.appendChild(gRow);
   });
+}
+
+function startEditMatnr(id) {
+  const cell = document.getElementById('matnrcell_'+id);
+  if(!cell) return;
+  const r = itemMap[id];
+  const cur = r.matnr || '';
+  cell.innerHTML = `<input class="matnr-input" type="text" value="${cur}" id="matnrinp_${id}" onblur="commitEditMatnr('${id}')" onkeydown="if(event.key==='Enter')commitEditMatnr('${id}');if(event.key==='Escape')cancelEditMatnr('${id}')">`;
+  const inp = document.getElementById('matnrinp_'+id);
+  inp.focus(); inp.select();
+}
+
+function cancelEditMatnr(id) { render(); }
+
+function commitEditMatnr(id) {
+  const inp = document.getElementById('matnrinp_'+id);
+  if(!inp) return;
+  const val = inp.value.trim();
+  itemMap[id].matnr = val;
+  userMatnr[id] = val;
+  saveToSheet(id, undefined, undefined, undefined, undefined, undefined, undefined, val);
+  render();
+}
+
+function startEditOwner(id) {
+  const cell = document.getElementById('ownercell_'+id);
+  if(!cell) return;
+  const r = itemMap[id];
+  const cur = r.owner || '';
+  cell.innerHTML = `<input class="owner-input" type="text" value="${cur}" id="ownerinp_${id}" onblur="commitEditOwner('${id}')" onkeydown="if(event.key==='Enter')commitEditOwner('${id}');if(event.key==='Escape')cancelEditOwner('${id}')">`;
+  const inp = document.getElementById('ownerinp_'+id);
+  inp.focus(); inp.select();
+}
+
+function cancelEditOwner(id) { render(); }
+
+function commitEditOwner(id) {
+  const inp = document.getElementById('ownerinp_'+id);
+  if(!inp) return;
+  const val = inp.value.trim();
+  itemMap[id].owner = val;
+  userOwner[id] = val;
+  saveToSheet(id, undefined, undefined, undefined, undefined, undefined, val);
+  render();
 }
 
 function startEdit(id) {
@@ -738,12 +953,14 @@ function resetAll() {
 // ── Google Sheets sync ──────────────────────────────────────────
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyFyxuYt5dx23FHFTBePxafb8PTEdWMM78Z28_eWAffBVIuZSB-6boXnoKok5VxXMBz/exec';
 
-function saveToSheet(id, status, duration, startWeek, gateWeek, gateDate) {
+function saveToSheet(id, status, duration, startWeek, gateWeek, gateDate, owner, matnr) {
   const payload = { id };
   if (status !== undefined) payload.status = status;
   if (duration !== undefined) payload.duration = duration;
   if (startWeek !== undefined) payload.startWeek = startWeek;
   if (gateDate !== undefined) payload.gateDate = gateDate;
+  if (owner !== undefined) payload.owner = owner;
+  if (matnr !== undefined) payload.matnr = matnr;
   fetch(SHEET_URL, {
     method: 'POST',
     body: JSON.stringify(payload)
@@ -762,6 +979,8 @@ function loadFromSheet() {
         if (!r) return;
         if (data[id].status) { userStatus[id] = data[id].status; r.status = data[id].status; }
         if (data[id].duration) { userDur[id] = parseInt(data[id].duration); }
+        if (data[id].owner) { userOwner[id] = data[id].owner; r.owner = data[id].owner; }
+        if (data[id].matnr) { userMatnr[id] = data[id].matnr; r.matnr = data[id].matnr; }
         if (data[id].startWeek !== undefined && data[id].startWeek !== '') { userStart[id] = parseInt(data[id].startWeek); }
         if (data[id].gateDate !== undefined && data[id].gateDate !== '' && r.type==='gate') {
           const dateObj = new Date(data[id].gateDate + 'T00:00:00');
