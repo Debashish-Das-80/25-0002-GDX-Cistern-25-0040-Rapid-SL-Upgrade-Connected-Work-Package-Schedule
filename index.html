@@ -834,9 +834,12 @@ function commitEditMatnr(id) {
   const inp = document.getElementById('matnrinp_'+id);
   if(!inp) return;
   const val = inp.value.trim();
-  itemMap[id].matnr = val;
-  userMatnr[id] = val;
-  saveToSheet(id, undefined, undefined, undefined, undefined, undefined, undefined, val);
+  const r = itemMap[id];
+  if (val !== (r.matnr || '')) {
+    r.matnr = val;
+    userMatnr[id] = val;
+    saveToSheet(id, undefined, undefined, undefined, undefined, undefined, undefined, val);
+  }
   render();
 }
 
@@ -856,9 +859,12 @@ function commitEditOwner(id) {
   const inp = document.getElementById('ownerinp_'+id);
   if(!inp) return;
   const val = inp.value.trim();
-  itemMap[id].owner = val;
-  userOwner[id] = val;
-  saveToSheet(id, undefined, undefined, undefined, undefined, undefined, val);
+  const r = itemMap[id];
+  if (val !== (r.owner || '')) {
+    r.owner = val;
+    userOwner[id] = val;
+    saveToSheet(id, undefined, undefined, undefined, undefined, undefined, val);
+  }
   render();
 }
 
@@ -914,7 +920,7 @@ function commitEdit(id) {
   const inp = document.getElementById('inp_'+id);
   if(!inp) return;
   const val = parseInt(inp.value);
-  if(!isNaN(val) && val>=1 && val<=104) {
+  if(!isNaN(val) && val>=1 && val<=104 && val !== getEffDur(id)) {
     userDur[id] = val;
     saveToSheet(id, undefined, val);
     showImpact(id, val);
